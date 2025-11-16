@@ -8,6 +8,7 @@ import { HowToHelp } from "../components/pages/HowToHelp";
 import { About } from "../components/pages/About";
 import { AdoptionSuccess } from "../components/pages/AdoptionSuccess";
 import { MainHeader } from "../components/MainHeader";
+import "./App.css";
 
 export type Page = 
   | "home" 
