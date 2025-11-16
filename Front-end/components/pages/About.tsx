@@ -185,7 +185,7 @@ export function About({ onNavigate }: AboutProps) {
               <Phone className="w-6 h-6 text-pink-500" />
             </div>
             <h3 className="text-gray-900 mb-2">Telefone</h3>
-            <p className="text-gray-600">(11) 98765-4321</p>
+            <p className="text-gray-600">(31) 9999-9999</p>
           </Card>
 
           <Card className="p-6 text-center">
@@ -193,7 +193,7 @@ export function About({ onNavigate }: AboutProps) {
               <MapPin className="w-6 h-6 text-purple-500" />
             </div>
             <h3 className="text-gray-900 mb-2">Localização</h3>
-            <p className="text-gray-600">São Paulo, SP - Brasil</p>
+            <p className="text-gray-600">Contagem, MG - Brasil</p>
           </Card>
         </div>
 
@@ -212,6 +212,24 @@ export function About({ onNavigate }: AboutProps) {
             >
               Ver animais para adoção
             </Button>
+          </Card>
+        </div>
+
+        {/* Feedback Section */}
+        <div className="mt-12 text-center">
+          <Card className="p-8 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200">
+            <h2 className="text-2xl text-gray-900 mb-4">
+              Feedback e Sugestões
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Sua opinião é importante para melhorar o ProtegePet. Compartilhe suas sugestões e feedback
+            </p>
+            <button
+              onClick={() => window.location.href = "/feedback.html"}
+              className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md hover:shadow-lg"
+            >
+              Enviar Feedback
+            </button>
           </Card>
         </div>
       </div>
