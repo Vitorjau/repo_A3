@@ -14,7 +14,7 @@ Pré-requisitos
 - Abra um PowerShell e execute:
 
 ```powershell
-cd C:\Users\VitorJau\Desktop\projeto_a3_quinta\A3-quinta-projeto\Back-end
+cd C:\caminho\para\seu\projeto\Back-end    # substitua pelo caminho onde clonou o repositório
 # Criar (se necessário) e ativar virtualenv
 py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
@@ -38,7 +38,7 @@ python app.py
 - Em outro PowerShell:
 
 ```powershell
-cd C:\Users\VitorJau\Desktop\projeto_a3_quinta\A3-quinta-projeto\Front-end
+cd C:\caminho\para\seu\projeto\Front-end   # substitua pelo caminho onde clonou o repositório
 npm install
 npm run dev
 ```
