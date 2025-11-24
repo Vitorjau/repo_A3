@@ -121,11 +121,16 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    /* Tailwind utility classes border-border and outline-ring/50 não existem na config atual.
+       Substituímos por CSS direto usando variáveis definidas no tema. */
+    border-color: var(--color-border);
+    /* Opcional: outline color derivada da variável --ring */
+    outline-color: var(--color-ring);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
 }
 

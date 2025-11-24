@@ -1,14 +1,33 @@
 import { CheckCircle, Home, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import type { Page } from "../../src/App";
+import type { Page, Adoption } from "../../src/types";
+import { adoptionAPI } from "../../src/services/api";
+import { toast } from "sonner";
 
 interface AdoptionSuccessProps {
   onNavigate: (page: Page) => void;
-  animalName?: string;
+  adoption: Adoption;
+  isOng?: boolean;
+  onApproved?: () => void;
 }
 
-export function AdoptionSuccess({ onNavigate, animalName }: AdoptionSuccessProps) {
+export function AdoptionSuccess({ onNavigate, adoption, isOng = false, onApproved }: AdoptionSuccessProps) {
+  const animalName = adoption.animal?.name;
+
+  const handleApprove = async () => {
+    try {
+      const res = await adoptionAPI.updateAdoptionStatus(adoption.id, 'Approved');
+      if (res.success) {
+        toast.success('Adoção aprovada e animal marcado como Adotado');
+        onApproved?.();
+      } else {
+        toast.error(res.message || 'Falha ao aprovar adoção');
+      }
+    } catch (err) {
+      toast.error('Erro ao aprovar adoção');
+    }
+  };
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
       <Card className="p-8 text-center">
@@ -27,9 +46,21 @@ export function AdoptionSuccess({ onNavigate, animalName }: AdoptionSuccessProps
           }
         </p>
 
-        <div className="bg-gradient-to-r from-orange-50 to-pink-50 p-6 rounded-lg mb-8">
-          <h2 className="text-gray-900 mb-4">Próximos Passos</h2>
-          <div className="space-y-3 text-left text-gray-600">
+        <div className="bg-gradient-to-r from-orange-50 to-pink-50 p-6 rounded-lg mb-8 text-left">
+          <h2 className="text-gray-900 mb-4">Resumo da Solicitação</h2>
+          <div className="space-y-2 text-sm text-gray-700">
+            <p><span className="font-semibold">Adotante:</span> {adoption.adopter_name}</p>
+            <p><span className="font-semibold">E-mail:</span> {adoption.adopter_email}</p>
+            {adoption.adopter_phone && <p><span className="font-semibold">Telefone:</span> {adoption.adopter_phone}</p>}
+            <p><span className="font-semibold">Endereço:</span> {adoption.address_street}, {adoption.address_number}{adoption.address_complement ? ` - ${adoption.address_complement}` : ""}</p>
+            {adoption.address_neighborhood && <p><span className="font-semibold">Bairro:</span> {adoption.address_neighborhood}</p>}
+            <p><span className="font-semibold">Cidade/UF:</span> {adoption.address_city}/{adoption.address_state}</p>
+            {adoption.adoption_message && <p><span className="font-semibold">Mensagem:</span> {adoption.adoption_message}</p>}
+            <p><span className="font-semibold">Protocolo:</span> #{adoption.id}</p>
+            <p><span className="font-semibold">Status inicial:</span> {adoption.status}</p>
+          </div>
+          <h2 className="text-gray-900 mt-6 mb-4">Próximos Passos</h2>
+          <div className="space-y-3 text-gray-600">
             <div className="flex items-start gap-3">
               <div className="bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                 1
@@ -77,8 +108,14 @@ export function AdoptionSuccess({ onNavigate, animalName }: AdoptionSuccessProps
         </div>
 
         <p className="text-sm text-gray-500 mt-6">
-          Enquanto isso, você pode continuar navegando e conhecer outros pets disponíveis
+          Enquanto isso, você pode continuar navegando e conhecer outros pets disponíveis.
         </p>
+        {isOng && adoption.status === 'Pending' && (
+          <div className="mt-6 text-left">
+            <h3 className="text-gray-900 mb-2 text-sm font-semibold">Ações da ONG</h3>
+            <Button variant="outline" onClick={handleApprove} className="w-full">Aprovar adoção</Button>
+          </div>
+        )}
       </Card>
 
       {/* Additional Info */}

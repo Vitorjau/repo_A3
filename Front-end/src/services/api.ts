@@ -5,6 +5,23 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+  if (token) {
+    localStorage.setItem('auth_token', token);
+  } else {
+    localStorage.removeItem('auth_token');
+  }
+}
+
+export function loadStoredToken() {
+  const stored = localStorage.getItem('auth_token');
+  if (stored) authToken = stored;
+  return authToken;
+}
+
 interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
@@ -40,6 +57,10 @@ async function fetchAPI<T = unknown>(
     signal: config?.signal,
   };
 
+  if (authToken) {
+    (fetchOptions.headers as Record<string,string>)['Authorization'] = `Bearer ${authToken}`;
+  }
+
   if (config?.body) {
     fetchOptions.body = JSON.stringify(config.body);
   }
@@ -63,8 +84,8 @@ export const animalAPI = {
   /**
    * Lista todos os animais
    */
-  getAllAnimals: async () => {
-    return fetchAPI<any[]>('/animals');
+  getAllAnimals: async (page: number = 1, perPage: number = 10) => {
+    return fetchAPI<{ items: any[]; meta: any }>(`/animals?page=${page}&per_page=${perPage}`);
   },
 
   /**
@@ -136,7 +157,7 @@ export const adoptionAPI = {
     address_state: string;
     adoption_message?: string;
   }) => {
-    return fetchAPI<any>('/adoption', {
+    return fetchAPI<any>('/adoptions', {
       method: 'POST',
       body: data,
     });
@@ -146,21 +167,21 @@ export const adoptionAPI = {
    * Lista todas as adoções
    */
   getAllAdoptions: async () => {
-    return fetchAPI<any[]>('/adoption');
+    return fetchAPI<any[]>('/adoptions');
   },
 
   /**
    * Obtém detalhes de uma adoção
    */
   getAdoptionById: async (id: number) => {
-    return fetchAPI<any>(`/adoption/${id}`);
+    return fetchAPI<any>(`/adoptions/${id}`);
   },
 
   /**
    * Atualiza status de uma adoção
    */
   updateAdoptionStatus: async (id: number, status: 'Pending' | 'Approved' | 'Rejected') => {
-    return fetchAPI<any>(`/adoption/${id}`, {
+    return fetchAPI<any>(`/adoptions/${id}/status`, {
       method: 'PUT',
       body: { status },
     });
@@ -222,11 +243,16 @@ export const authAPI = {
     });
   },
   login: async (data: { email: string; password: string; role: 'ong' | 'adotante'; }) => {
-    return fetchAPI<any>('/auth/login', {
+    const res = await fetchAPI<any>('/auth/login', {
       method: 'POST',
       body: data,
     });
+    if (res.success && res.data?.token) {
+      setAuthToken(res.data.token);
+    }
+    return res;
   },
+  me: async () => fetchAPI<any>('/auth/me'),
 };
 
 export default {

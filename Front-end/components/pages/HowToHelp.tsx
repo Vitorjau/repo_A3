@@ -1,7 +1,7 @@
 import { Heart, Users, Gift, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { toast } from "sonner";
 

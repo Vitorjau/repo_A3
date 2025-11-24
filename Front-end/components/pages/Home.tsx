@@ -1,7 +1,7 @@
 import { ArrowRight, Heart, Home as HomeIcon, Shield } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import type { Page, Animal } from "../../src/App";
+import type { Page, Animal } from "../../src/types";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 
 interface HomeProps {

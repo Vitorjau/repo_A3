@@ -1,40 +1,20 @@
 import { useState, useEffect } from "react";
-import { Home } from "../components/pages/Home";
-import { AnimalList } from "../components/pages/AnimalList";
-import { AnimalDetails } from "../components/pages/AnimalDetails";
-import { Login } from "../components/pages/Login";
-import { RegisterAnimal } from "../components/pages/RegisterAnimal";
-import { HowToHelp } from "../components/pages/HowToHelp";
-import { About } from "../components/pages/About";
-import { AdoptionSuccess } from "../components/pages/AdoptionSuccess";
-import { MainHeader } from "../components/MainHeader";
-import { animalAPI } from "./services/api";
+import { Home } from "../components/pages/Home.tsx";
+import { AnimalList } from "../components/pages/AnimalList.tsx";
+import { AnimalDetails } from "../components/pages/AnimalDetails.tsx";
+import { Login } from "../components/pages/Login.tsx";
+import { RegisterAnimal } from "../components/pages/RegisterAnimal.tsx";
+import { HowToHelp } from "../components/pages/HowToHelp.tsx";
+import { About } from "../components/pages/About.tsx";
+import { AdoptionSuccess } from "../components/pages/AdoptionSuccess.tsx";
+import { ManageAnimals } from "../components/pages/ManageAnimals.tsx";
+import type { Page, Animal, Adoption } from "./types";
+import { MainHeader } from "../components/MainHeader.tsx";
+import { animalAPI, loadStoredToken } from "./services/api";
 import { toast } from "sonner";
 import "./App.css";
 
-export type Page = 
-  | "home" 
-  | "animals" 
-  | "animal-details" 
-  | "login" 
-  | "register-animal" 
-  | "how-to-help" 
-  | "about"
-  | "success";
-
-export interface Animal {
-  id: number;
-  name: string;
-  species: "Cachorro" | "Gato";
-  age: string;
-  size: "Pequeno" | "Médio" | "Grande";
-  temperament: string;
-  city: string;
-  status: "Disponível" | "Adotado";
-  image: string;
-  description: string;
-  history: string;
-}
+// Tipos movidos para ./types para evitar dependência circular com ManageAnimals
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
@@ -42,33 +22,33 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState<"adotante" | "ong" | null>(null);
   const [animals, setAnimals] = useState<Animal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [adoptionData, setAdoptionData] = useState<Adoption | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(6);
+  const [totalPages, setTotalPages] = useState<number>(1);
 
   // Busca animais da API ao carregar o componente
   useEffect(() => {
-    const fetchAnimals = async () => {
+    loadStoredToken();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
       try {
-        setLoading(true);
-        setError(null);
-        const response = await animalAPI.getAllAnimals();
+        const response = await animalAPI.getAllAnimals(page, perPage);
         if (response.success && response.data) {
-          setAnimals(response.data);
+          setAnimals(response.data.items);
+          setTotalPages(response.data.meta.pages);
         } else {
           throw new Error(response.message || "Erro ao carregar animais");
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Erro ao carregar animais";
-        setError(message);
         console.error("Erro ao buscar animais:", err);
         toast.error(message);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchAnimals();
-  }, []);
+    })();
+  }, [page, perPage]);
 
   const navigateTo = (page: Page, animal?: Animal) => {
     setCurrentPage(page);
@@ -86,9 +66,10 @@ export default function App() {
 
   const refreshAnimals = async () => {
     try {
-      const response = await animalAPI.getAllAnimals();
+      const response = await animalAPI.getAllAnimals(page, perPage);
       if (response.success && response.data) {
-        setAnimals(response.data);
+        setAnimals(response.data.items);
+        setTotalPages(response.data.meta.pages);
       }
     } catch (err) {
       console.error("Erro ao atualizar lista de animais", err);
@@ -99,6 +80,14 @@ export default function App() {
     setIsLoggedIn(false);
     setUserType(null);
     navigateTo("home");
+  };
+
+  const handleAdoptionSuccess = (data: Adoption) => {
+    setAdoptionData(data);
+    if (data.animal) {
+      setSelectedAnimal(data.animal as Animal);
+    }
+    navigateTo("success");
   };
 
   return (
@@ -116,10 +105,16 @@ export default function App() {
           <Home animals={animals} onNavigate={navigateTo} />
         )}
         {currentPage === "animals" && (
-          <AnimalList animals={animals} onNavigate={navigateTo} />
+          <AnimalList 
+            animals={animals} 
+            onNavigate={navigateTo} 
+            page={page} 
+            totalPages={totalPages} 
+            onPageChange={setPage}
+          />
         )}
         {currentPage === "animal-details" && selectedAnimal && (
-          <AnimalDetails animal={selectedAnimal} onNavigate={navigateTo} />
+          <AnimalDetails animal={selectedAnimal} onNavigate={navigateTo} onAdoptionSuccess={handleAdoptionSuccess} />
         )}
         {currentPage === "login" && (
           <Login onNavigate={navigateTo} onLogin={handleLogin} />
@@ -133,8 +128,20 @@ export default function App() {
         {currentPage === "about" && (
           <About onNavigate={navigateTo} />
         )}
-        {currentPage === "success" && (
-          <AdoptionSuccess onNavigate={navigateTo} animalName={selectedAnimal?.name} />
+        {currentPage === "success" && adoptionData && (
+          <AdoptionSuccess 
+            onNavigate={navigateTo} 
+            adoption={adoptionData}
+            isOng={userType === 'ong'}
+            onApproved={refreshAnimals}
+          />
+        )}
+        {currentPage === "manage" && isLoggedIn && userType === 'ong' && (
+          <ManageAnimals 
+            animals={animals}
+            onNavigate={navigateTo}
+            onDeleteSuccess={refreshAnimals}
+          />
         )}
       </main>
 

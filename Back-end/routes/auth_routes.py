@@ -1,7 +1,8 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, g
 from database.models import db, User
 from utils.response_builder import build_response
 from utils.error_handlers import handle_error
+from utils.jwt_utils import generate_token, token_required
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -29,15 +30,17 @@ def register():
         user.set_password(data["password"])
         db.session.add(user)
         db.session.commit()
-
-        return build_response(True, "Usuário registrado com sucesso", user.to_dict()), 201
+        # Gera token já no registro para evitar 401 ao criar animal logo após cadastrar ONG
+        token = generate_token(user)
+        user_data = user.to_dict() | {"token": token}
+        return build_response(True, "Usuário registrado com sucesso", user_data), 201
     except Exception as e:
         db.session.rollback()
         return handle_error(e, "Erro ao registrar usuário")
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """POST /auth/login - Realiza login simples (sem JWT)."""
+    """POST /auth/login - Realiza login retornando JWT."""
     try:
         data = request.get_json() or {}
         email = data.get("email")
@@ -51,6 +54,17 @@ def login():
         if not user or not user.check_password(password):
             return build_response(False, "Credenciais inválidas"), 401
 
-        return build_response(True, "Login realizado com sucesso", user.to_dict()), 200
+        token = generate_token(user)
+        user_data = user.to_dict() | {"token": token}
+        return build_response(True, "Login realizado com sucesso", user_data), 200
     except Exception as e:
         return handle_error(e, "Erro ao realizar login")
+
+@auth_bp.route("/me", methods=["GET"])
+@token_required()
+def me():
+    """GET /auth/me - Retorna dados do usuário autenticado."""
+    user = getattr(g, "current_user", None)
+    if not user:
+        return build_response(False, "Usuário não autenticado"), 401
+    return build_response(True, "Usuário autenticado", user.to_dict()), 200

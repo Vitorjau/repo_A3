@@ -5,7 +5,7 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
-import type { Page, Animal } from "../../src/App";
+import type { Page, Animal, Adoption } from "../../src/types";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,9 +14,10 @@ import { adoptionAPI } from "../../src/services/api";
 interface AnimalDetailsProps {
   animal: Animal;
   onNavigate: (page: Page) => void;
+  onAdoptionSuccess: (data: Adoption) => void;
 }
 
-export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
+export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalDetailsProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,6 +26,7 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     address: "",
     number: "",
     complement: "",
+    neighborhood: "",
     city: "",
     state: "",
     message: ""
@@ -40,9 +42,21 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     }
 
     try {
-      // API de CEP será implementada no back-end
-      // Por enquanto, apenas mostramos uma mensagem
-      toast.info("Função de busca de CEP será integrada em breve");
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      setFormData(prev => ({
+        ...prev,
+        address: data.logradouro || prev.address,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: (data.uf || prev.state).toUpperCase(),
+        complement: prev.complement || data.complemento || ""
+      }));
+      toast.success("Endereço preenchido automaticamente");
     } catch (error) {
       toast.error("Erro ao buscar CEP. Tente novamente.");
     }
@@ -75,14 +89,15 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
         address_street: formData.address,
         address_number: formData.number,
         address_complement: formData.complement || undefined,
+        address_neighborhood: formData.neighborhood || undefined,
         address_city: formData.city,
         address_state: formData.state.toUpperCase(),
         adoption_message: formData.message
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success("Solicitação de adoção enviada com sucesso!");
-        onNavigate("success");
+        onAdoptionSuccess(response.data as Adoption);
       } else {
         toast.error(response.message || "Erro ao enviar solicitação de adoção");
       }
@@ -319,6 +334,17 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Input
+                      id="neighborhood"
+                      name="neighborhood"
+                      value={formData.neighborhood}
+                      onChange={handleChange}
+                      placeholder="Preenchido pelo CEP"
+                    />
                   </div>
                 </div>
 

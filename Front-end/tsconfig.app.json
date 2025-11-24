@@ -26,5 +26,18 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src", "components", "vite-env.d.ts"]
+  "include": [
+    "src",
+    "components/pages",
+    "components/MainHeader.tsx",
+    "components/ui/button.tsx",
+    "components/ui/utils.ts",
+    "vite-env.d.ts"
+  ],
+  "exclude": [
+    "components/ui/*",
+    "components/ui/**/*",
+    "!components/ui/button.tsx",
+    "!components/ui/utils.ts"
+  ]
 }

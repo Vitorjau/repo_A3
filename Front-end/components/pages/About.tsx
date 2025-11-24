@@ -4,7 +4,7 @@ import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { useState } from "react";
 import { toast } from "sonner";
 import { contactAPI, feedbackAPI } from "../../src/services/api";

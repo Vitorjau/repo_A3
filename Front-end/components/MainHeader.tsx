@@ -1,7 +1,7 @@
 import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import type { Page } from "../src/App";
+import type { Page } from "../src/types";
 
 interface MainHeaderProps {
   currentPage: Page;
@@ -26,6 +26,10 @@ export function MainHeader({
     { label: "Como ajudar", page: "how-to-help" },
     { label: "Sobre", page: "about" },
   ];
+
+  if (isLoggedIn && userType === 'ong') {
+    navigationItems.push({ label: 'Gerenciar', page: 'manage' });
+  }
 
   const handleNavClick = (page: Page) => {
     onNavigate(page);

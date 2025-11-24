@@ -5,9 +5,9 @@ import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { toast } from "sonner";
-import { authAPI } from "../../src/services/api";
+import { authAPI, setAuthToken } from "../../src/services/api";
 
 interface LoginProps {
   onNavigate: (page: Page) => void;
@@ -19,6 +19,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
     email: "",
     password: ""
   });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -40,6 +41,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
     }
     try {
       setLoadingLogin(true);
+      setLoginError(null);
       const response = await authAPI.login({
         email: loginData.email,
         password: loginData.password,
@@ -47,13 +49,19 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
       });
       if (response.success) {
         toast.success("Login realizado com sucesso!");
+        // token já salvo pelo api.ts, mas garantimos consistência
+        setAuthToken(response.data?.token || null);
         onLogin(userType);
       } else {
-        toast.error(response.message || "Falha no login");
+        const msg = response.message || "E-mail ou senha incorretos";
+        setLoginError(msg);
+        toast.error(msg);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro de login";
-      toast.error(msg);
+      const raw = err instanceof Error ? err.message : "Erro de login";
+      const friendly = /Credenciais|401/.test(raw) ? "E-mail ou senha incorretos" : raw;
+      setLoginError(friendly);
+      toast.error(friendly);
     } finally {
       setLoadingLogin(false);
     }
@@ -79,6 +87,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
       });
       if (response.success) {
         toast.success("Cadastro realizado com sucesso!");
+        setAuthToken(response.data?.token || null);
         onLogin(userType);
       } else {
         toast.error(response.message || "Erro ao cadastrar");
@@ -177,6 +186,12 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   required
                 />
               </div>
+
+              {loginError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+                  {loginError}
+                </div>
+              )}
 
               <button
                 type="button"

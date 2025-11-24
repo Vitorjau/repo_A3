@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { toast } from "sonner";
 import { animalAPI } from "../../src/services/api";
 

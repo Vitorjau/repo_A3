@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
-import type { Page, Animal } from "../../src/App";
+import type { Page, Animal } from "../../src/types";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import {
   Select,
@@ -17,9 +17,12 @@ import {
 interface AnimalListProps {
   animals: Animal[];
   onNavigate: (page: Page, animal?: Animal) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
 }
 
-export function AnimalList({ animals, onNavigate }: AnimalListProps) {
+export function AnimalList({ animals, onNavigate, page, totalPages, onPageChange }: AnimalListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState<string>("all");
   const [sizeFilter, setSizeFilter] = useState<string>("all");
@@ -120,8 +123,29 @@ export function AnimalList({ animals, onNavigate }: AnimalListProps) {
       </div>
 
       {/* Results Count */}
-      <div className="mb-6 text-gray-600">
-        {filteredAnimals.length} {filteredAnimals.length === 1 ? "animal encontrado" : "animais encontrados"}
+      <div className="mb-6 flex items-center justify-between text-gray-600">
+        <span>
+          {filteredAnimals.length} {filteredAnimals.length === 1 ? "animal encontrado" : "animais encontrados"}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => page > 1 && onPageChange(page - 1)}
+          >
+            Anterior
+          </Button>
+          <span className="text-sm">Página {page} de {totalPages}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => page < totalPages && onPageChange(page + 1)}
+          >
+            Próxima
+          </Button>
+        </div>
       </div>
 
       {/* Animals Grid */}
