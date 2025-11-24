@@ -1,4 +1,4 @@
-import { ArrowLeft, Share2, MapPin, Calendar, Heart } from "lucide-react";
+import { ArrowLeft, Share2, MapPin, Calendar, Heart, Loader } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -9,6 +9,7 @@ import type { Page, Animal } from "../../src/App";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useState } from "react";
 import { toast } from "sonner";
+import { adoptionAPI } from "../../src/services/api";
 
 interface AnimalDetailsProps {
   animal: Animal;
@@ -28,6 +29,7 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     state: "",
     message: ""
   });
+  const [loading, setLoading] = useState(false);
 
   const handleSearchCep = async () => {
     const cep = formData.cep.replace(/\D/g, "");
@@ -50,13 +52,47 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     toast.success("Link copiado para a área de transferência!");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
-    onNavigate("success");
+
+    if (!formData.cep || !formData.address || !formData.number || !formData.city || !formData.state) {
+      toast.error("Por favor, preencha todos os campos de endereço");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await adoptionAPI.createAdoption({
+        animal_id: animal.id,
+        adopter_name: formData.name,
+        adopter_email: formData.email,
+        adopter_phone: formData.phone || undefined,
+        address_cep: formData.cep,
+        address_street: formData.address,
+        address_number: formData.number,
+        address_complement: formData.complement || undefined,
+        address_city: formData.city,
+        address_state: formData.state.toUpperCase(),
+        adoption_message: formData.message
+      });
+
+      if (response.success) {
+        toast.success("Solicitação de adoção enviada com sucesso!");
+        onNavigate("success");
+      } else {
+        toast.error(response.message || "Erro ao enviar solicitação de adoção");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao enviar solicitação de adoção";
+      toast.error(message);
+      console.error("Erro ao criar adoção:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -301,9 +337,17 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  Quero adotar
+                  {loading ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Quero adotar"
+                  )}
                 </Button>
               </form>
             </Card>
