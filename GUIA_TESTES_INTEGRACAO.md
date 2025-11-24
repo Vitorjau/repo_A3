@@ -55,192 +55,154 @@ O servidor React estará rodando em `http://localhost:5173`
   - ✅ Filtros funcionam normalmente
 
 **Status Esperado**: Animais são carregados via `GET /animals`
+````markdown
+# Guia de Teste - Integração Front-end e Back-end
+
+Este guia descreve como executar e testar a aplicação completa (Back-end Flask + Front-end React), incluindo comandos PowerShell para criar o ambiente, iniciar/parar o servidor e realizar requisições de teste.
 
 ---
 
-### 2. **Teste: Detalhes do Animal**
-- **URL**: http://localhost:5173
-- **Ação**: Clique em "Ver mais" em qualquer animal
-- **Esperado**:
-  - ✅ Página de detalhes carrega corretamente
-  - ✅ Informações do animal aparecem
+## 1) Situação atual (nota automática)
+
+- O `venv` do back-end foi recriado usando Python 3.12 e as dependências de `Back-end/requirements.txt` foram instaladas.
+- Se você seguiu os passos anteriores, o servidor Flask pode estar parado — comandos abaixo mostram como iniciar/parar e verificar.
 
 ---
 
-### 3. **Teste: Cadastrar Novo Animal (ONG)**
-- **URL**: http://localhost:5173/register-animal
-- **Pré-requisito**: Faça login como "ONG" primeiro
-- **Ação**: 
-  1. Clique em "Login" no menu
-  2. Selecione "ONG/Protetor"
-  3. Navegue para "Cadastrar Animal"
-  4. Preencha o formulário com dados de teste
-  5. Clique em "Salvar Animal"
-- **Esperado**:
-  - ✅ Formulário envia dados para `POST /animals`
-  - ✅ Mensagem de sucesso aparece
-  - ✅ Redireciona para lista de animais
+## 2) Comandos úteis (PowerShell)
 
-**Dados de teste**:
-```json
-{
-  "name": "Rex",
-  "species": "Cachorro",
-  "age": "1 ano",
-  "size": "Médio",
-  "temperament": "Energético",
-  "city": "São Paulo, SP",
-  "description": "Filhote de golden retriever",
-  "history": "Resgatado de situação de rua",
-  "status": "Disponível"
-}
-```
+Observação: execute os comandos a partir do diretório do projeto (`c:\Users\VitorJau\Desktop\repo\A3-quinta-projeto`).
 
----
-
-### 4. **Teste: Formulário de Adoção**
-- **URL**: http://localhost:5173 → Animal Details
-- **Ação**:
-  1. Clique em "Ver mais" de um animal
-  2. Preencha o formulário "Interessado em adotar?"
-  3. Clique em "Quero adotar"
-- **Esperado**:
-  - ✅ Formulário envia dados para `POST /adoption`
-  - ✅ Redireciona para página de sucesso
-  - ✅ Dados aparecem no banco de dados
-
-**Campos obrigatórios**: Nome, E-mail, Endereço completo, Mensagem
-
----
-
-### 5. **Teste: Formulário de Contato**
-- **URL**: http://localhost:5173/about
-- **Ação**:
-  1. Preencha o formulário "Entre em Contato"
-  2. Clique em "Enviar mensagem"
-- **Esperado**:
-  - ✅ Dados enviam para `POST /contact`
-  - ✅ Mensagem de sucesso aparece
-  - ✅ Formulário limpa após sucesso
-
----
-
-### 6. **Teste: Feedback**
-- **URL**: http://localhost:5173/about
-- **Ação**:
-  1. Rolle até "Feedback e Sugestões"
-  2. Escreva uma mensagem
-  3. Clique em "Enviar Feedback"
-- **Esperado**:
-  - ✅ Feedback envia para `POST /feedback`
-  - ✅ Mensagem de sucesso aparece
-
----
-
-## 🔧 Endpoints da API
-
-### Animals
-- `GET /animals` - Lista todos os animais
-- `GET /animals/<id>` - Obtém um animal específico
-- `POST /animals` - Cria um novo animal
-- `PUT /animals/<id>` - Atualiza um animal
-- `DELETE /animals/<id>` - Deleta um animal
-
-### Adoption
-- `GET /adoption` - Lista todas as adoções
-- `GET /adoption/<id>` - Obtém uma adoção específica
-- `POST /adoption` - Cria uma solicitação de adoção
-- `PUT /adoption/<id>` - Atualiza status da adoção
-
-### Contact
-- `POST /contact` - Envia mensagem de contato
-
-### Feedback
-- `POST /feedback` - Envia feedback
-
-### Health
-- `GET /health` - Verifica status do servidor
-
----
-
-## 🐛 Troubleshooting
-
-### Erro: "Cannot find module 'sonner'"
-**Solução**: Instale os pacotes necessários
+Ativar o venv do back-end e iniciar o servidor (foreground):
 ```powershell
-npm install
+Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Back-end'
+.\venv\Scripts\Activate.ps1
+python app.py
 ```
 
-### Erro: "Connection refused on localhost:3001"
-**Solução**: 
-- Verifique se o servidor Flask está rodando
-- Confirme se está na porta correta em `.env.local`
-
-### Erro: "CORS Error"
-**Solução**: O back-end já está configurado com CORS. Se persistir:
-```python
-# Em app.py, verifique:
-CORS(app, origins=["http://localhost:5173", ...])
+Iniciar o front-end (em outra janela):
+```powershell
+Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Front-end'
+npm install      # (se ainda não instalou)
+npm run dev
 ```
 
-### Dados não aparecem após cadastro
-**Solução**: 
-- Recarregue a página (F5)
-- Verifique se o banco de dados foi criado em `Back-end/instance/`
+Parar o servidor Flask que estiver ocupando a porta `3001` (força o término do processo):
+```powershell
+Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Back-end'
+$p=(Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue).OwningProcess
+if ($p) { Stop-Process -Id $p -Force; Write-Output "Stopped process(es): $p" } else { Write-Output 'No process found on port 3001' }
+```
+
+Verificar se a porta `3001` está ouvindo:
+```powershell
+Test-NetConnection -ComputerName 127.0.0.1 -Port 3001
+```
+
+Checar o endpoint health da API (esperado JSON de retorno):
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:3001/health -Method GET
+```
 
 ---
 
-## 📁 Estrutura de Arquivos Criados/Modificados
+## 3) Fluxo de teste completo (passo-a-passo)
 
-### Novo:
-- `Front-end/src/services/api.ts` - Cliente HTTP centralizado
-- `Front-end/.env.local` - Configuração da URL da API
+1. Garantir que o back-end esteja rodando
+   - Ative o venv e rode `python app.py` (veja seção anterior).
+   - Chame `GET /health` para confirmar: `Invoke-RestMethod -Uri http://127.0.0.1:3001/health -Method GET`.
 
-### Modificados:
-- `Front-end/src/App.tsx` - Integrado com busca de animais da API
-- `Front-end/components/pages/RegisterAnimal.tsx` - Conectado ao POST /animals
-- `Front-end/components/pages/AnimalDetails.tsx` - Conectado ao POST /adoption
-- `Front-end/components/pages/About.tsx` - Conectado a POST /contact e POST /feedback
+2. Garantir que o front-end esteja rodando
+   - No diretório `Front-end`, rode `npm run dev` e abra `http://localhost:5173`.
+
+3. Testar leitura de animais (lista)
+   - `GET /animals` (via PowerShell):
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:3001/animals -Method GET | ConvertTo-Json
+```
+
+4. Criar um animal de teste (POST)
+   - Exemplo com `Invoke-RestMethod` (PowerShell):
+```powershell
+$body = @{
+  name = 'Rex'
+  species = 'Cachorro'
+  age = '1 ano'
+  size = 'Médio'
+  temperament = 'Energético'
+  city = 'São Paulo, SP'
+  description = 'Filhote de golden retriever'
+  history = 'Resgatado de situação de rua'
+  status = 'Disponível'
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri http://127.0.0.1:3001/animals -Method POST -Body $body -ContentType 'application/json'
+```
+   - Verifique `GET /animals` novamente para confirmar inserção.
+
+5. Criar uma solicitação de adoção (POST /adoption)
+```powershell
+$adopt = @{
+  animal_id = 1
+  name = 'João da Silva'
+  email = 'joao@example.com'
+  address = 'Rua Teste, 123, São Paulo, SP'
+  message = 'Tenho experiência com animais e quero adotar.'
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri http://127.0.0.1:3001/adoption -Method POST -Body $adopt -ContentType 'application/json'
+```
+
+6. Testar formulários de contato e feedback
+```powershell
+$contact = @{ name='Usuário Teste'; email='teste@example.com'; message='Pergunta sobre adoção' } | ConvertTo-Json
+Invoke-RestMethod -Uri http://127.0.0.1:3001/contact -Method POST -Body $contact -ContentType 'application/json'
+
+$feedback = @{ name='Usuário Teste'; email='teste@example.com'; message='Ótimo site!' } | ConvertTo-Json
+Invoke-RestMethod -Uri http://127.0.0.1:3001/feedback -Method POST -Body $feedback -ContentType 'application/json'
+```
+
+7. Verificar resultados no front-end
+   - Recarregue a página do front-end; a lista e detalhes devem refletir as inserções.
 
 ---
 
-## 📝 Próximos Passos (Opcional)
+## 4) Endpoints principais (resumo)
 
-1. **Implementar Autenticação**
-   - Login de usuários e ONGs
-   - JWT tokens
-   - Proteção de rotas
-
-2. **Upload de Imagens**
-   - Integrar Cloudinary ou AWS S3
-   - Salvar URLs das imagens no banco
-
-3. **Validação Avançada**
-   - Validação de CEP em tempo real
-   - Verificação de email
-   - Validação de dados de endereço
-
-4. **Notificações**
-   - E-mails de confirmação
-   - Alertas de status de adoção
-   - Notificações em tempo real
+- `GET /health` — health check
+- `GET /animals` — lista animais
+- `GET /animals/<id>` — detalhes
+- `POST /animals` — criar animal
+- `POST /adoption` — criar solicitação de adoção
+- `POST /contact` — enviar contato
+- `POST /feedback` — enviar feedback
 
 ---
 
-## ✨ Checklist de Integração
+## 5) Observações sobre o ambiente que executamos aqui
 
-- [x] API client configurado (`src/services/api.ts`)
-- [x] Variáveis de ambiente configuradas (`.env.local`)
-- [x] Busca de animais integrada (GET /animals)
-- [x] Cadastro de animais integrado (POST /animals)
-- [x] Formulário de adoção integrado (POST /adoption)
-- [x] Formulário de contato integrado (POST /contact)
-- [x] Feedback integrado (POST /feedback)
-- [x] Loading states implementados
-- [x] Error handling implementado
-- [x] Toasts de sucesso/erro configurados
+- Neste ambiente eu recriei o `venv` com Python 3.12 e instalei `SQLAlchemy 2.0.23` e demais dependências listadas em `requirements.txt`.
+- Iniciei o servidor e verifiquei que `GET /health` respondeu `{"message":"Server is running","status":"ok"}` e `GET /animals` retornou `{"data":[],...}` (sem registros iniciais).
 
 ---
 
-**Data de Implementação**: 24 de Novembro de 2025
-**Versão**: 1.0.0
+## 6) Troubleshooting rápido
+
+- Se `Invoke-RestMethod` retornar "Unable to connect", verifique se o servidor está ativo e se não há firewall bloqueando a porta `3001`.
+- Se houver erros relacionados a versões do Python/typing, recrie o `venv` usando Python 3.11/3.12 e reinstale dependências.
+
+---
+
+## 7) Próximos passos (opcionais que posso executar para você)
+
+- Criar um conjunto de seeds (N animais) automaticamente.
+- Iniciar o front-end e testar end-to-end interações (eu executo ambos e mostro logs).
+- Gerar um `Postman` collection com todas as rotas para facilitar testes manuais.
+
+---
+
+**Data de Atualização**: 24 de Novembro de 2025
+**Versão do Guia**: 1.1.0
+
+````
+
