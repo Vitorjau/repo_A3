@@ -61,148 +61,261 @@ O servidor React estará rodando em `http://localhost:5173`
 Este guia descreve como executar e testar a aplicação completa (Back-end Flask + Front-end React), incluindo comandos PowerShell para criar o ambiente, iniciar/parar o servidor e realizar requisições de teste.
 
 ---
+# Guia Completo de Testes (Front + Back) – ProtegePet
 
-## 1) Situação atual (nota automática)
+Versão: 2.0.0 • Data: 24/11/2025
 
-- O `venv` do back-end foi recriado usando Python 3.12 e as dependências de `Back-end/requirements.txt` foram instaladas.
-- Se você seguiu os passos anteriores, o servidor Flask pode estar parado — comandos abaixo mostram como iniciar/parar e verificar.
+Este guia substitui completamente o anterior e contém o fluxo de inicialização limpo, autenticação (cadastro/login), criação e visualização de animais, adoção, contato, feedback, testes negativos e troubleshooting. Use sempre que reiniciar o ambiente.
 
 ---
+## 1. Pré-requisitos
+- Python 3.12 instalado (evitar Python 3.14 para compatibilidade do SQLAlchemy).
+- Node.js (versão LTS recomendada) + npm.
+- PowerShell (já em uso).
 
-## 2) Comandos úteis (PowerShell)
+Verifique rapidamente:
+```powershell
+py -3.12 --version   # Deve mostrar Python 3.12.x
+node -v              # Versão do Node
+npm -v               # Versão do npm
+```
 
-Observação: execute os comandos a partir do diretório do projeto (`c:\Users\VitorJau\Desktop\repo\A3-quinta-projeto`).
-
-Ativar o venv do back-end e iniciar o servidor (foreground):
+---
+## 2. Inicialização Limpa (Backend)
 ```powershell
 Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Back-end'
+if (Test-Path .\venv) { Remove-Item -Recurse -Force .\venv }
+py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python --version
+python -c "import sqlalchemy; print('SQLAlchemy', __import__('sqlalchemy').__version__)"
 python app.py
 ```
+Esperado no console: servidor rodando em `http://127.0.0.1:3001` e PIN do debugger exibido.
 
-Iniciar o front-end (em outra janela):
-```powershell
-Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Front-end'
-npm install      # (se ainda não instalou)
-npm run dev
-```
-
-Parar o servidor Flask que estiver ocupando a porta `3001` (força o término do processo):
-```powershell
-Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Back-end'
-$p=(Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue).OwningProcess
-if ($p) { Stop-Process -Id $p -Force; Write-Output "Stopped process(es): $p" } else { Write-Output 'No process found on port 3001' }
-```
-
-Verificar se a porta `3001` está ouvindo:
-```powershell
-Test-NetConnection -ComputerName 127.0.0.1 -Port 3001
-```
-
-Checar o endpoint health da API (esperado JSON de retorno):
+Health check:
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:3001/health -Method GET
 ```
+Resposta esperada:
+```json
+{"status":"ok","message":"Server is running"}
+```
 
 ---
+## 3. Inicialização Limpa (Front-end)
+```powershell
+Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Front-end'
+if (!(Test-Path .\.env.local)) { "VITE_API_URL=http://localhost:3001" | Out-File -Encoding utf8 .\.env.local }
+if (!(Test-Path .\node_modules)) { npm install }
+npm run dev
+```
+Abrir: `http://localhost:5173`.
 
-## 3) Fluxo de teste completo (passo-a-passo)
+Verifique no DevTools (Network) que o front chama `GET /animals` logo ao entrar.
 
-1. Garantir que o back-end esteja rodando
-   - Ative o venv e rode `python app.py` (veja seção anterior).
-   - Chame `GET /health` para confirmar: `Invoke-RestMethod -Uri http://127.0.0.1:3001/health -Method GET`.
+---
+## 4. Fluxo de Teste – Passo a Passo
 
-2. Garantir que o front-end esteja rodando
-   - No diretório `Front-end`, rode `npm run dev` e abra `http://localhost:5173`.
+### 4.1 Cadastro de ONG
+Via interface (aba Login → Cadastro):
+Preencha:
+- Nome: `ONG Esperança`
+- E-mail: `ong.esperanca@example.com`
+- Senha: `SenhaForte123`
+- Confirmar senha: `SenhaForte123`
+- Tipo selecionado: ONG/Protetor
 
-3. Testar leitura de animais (lista)
-   - `GET /animals` (via PowerShell):
+Esperado:
+- Toast de sucesso.
+- Redirecionamento para Home.
+
+Teste negativo: tentar cadastrar mesmo email novamente → deve exibir erro “E-mail já cadastrado”.
+
+Via API (opcional PowerShell):
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:3001/auth/register -Method POST -Body (@{name='ONG Esperança'; email='ong.esperanca@example.com'; password='SenhaForte123'; role='ong'} | ConvertTo-Json) -ContentType 'application/json'
+```
+
+### 4.2 Login da ONG
+Interface (aba Login):
+- E-mail: `ong.esperanca@example.com`
+- Senha: `SenhaForte123`
+- Tipo: ONG/Protetor
+Esperado: Toast “Login realizado com sucesso!” + volta para Home.
+
+Teste negativo: senha errada → toast de erro “Credenciais inválidas”.
+
+### 4.3 Cadastro de Animal
+Navegar para “Cadastrar Animal” (visível após login ONG).
+Preencher campos (exemplo completo):
+- Nome: `Thor`
+- Espécie: `Cachorro`
+- Idade: `2 anos`
+- Porte: `Médio`
+- Temperamento: `Brincalhão e dócil`
+- Cidade: `São Paulo, SP`
+- Descrição curta: `Cachorro muito alegre e sociável.`
+- História completa: `Resgatado de abrigo, adora crianças e outros cães.`
+- Status: `Disponível`
+- Foto: (upload qualquer imagem pequena)
+
+Enviar.
+Esperado:
+- Spinner enquanto salva.
+- Toast sucesso.
+- Redireciona para lista (`Adote um Amigo`).
+- Animal aparece imediatamente (lista atualizada via callback).
+
+Teste negativo: deixar “Nome” vazio → toast erro.
+
+### 4.4 Ver Detalhes
+Na lista de animais, clicar em “Ver mais” no card de `Thor`.
+Esperado: página de detalhes com todos os campos + status “Disponível”.
+
+### 4.5 Cadastro de Adotante
+Logout.
+Ir para Login → Cadastro.
+Preencher:
+- Nome: `Carlos Pereira`
+- E-mail: `carlos.pereira@example.com`
+- Senha: `Teste123!`
+- Confirmar senha: `Teste123!`
+- Tipo selecionado: Adotante
+
+Login com esse adotante.
+Esperado: lista de animais aparece (Thor visível).
+
+### 4.6 Solicitação de Adoção
+Entrar no “Ver mais” de `Thor`.
+Preencher formulário de adoção:
+- Nome: `Carlos Pereira`
+- Email: `carlos.pereira@example.com`
+- CEP: `01001-000`
+- Rua: `Praça da Sé`
+- Número: `100`
+- Complemento: `Apto 12`
+- Bairro: `Sé`
+- Cidade: `São Paulo`
+- Estado: `SP`
+- Mensagem: `Tenho casa com quintal e tempo para brincadeiras.`
+Enviar.
+Esperado:
+- Toast sucesso + redirecionamento para página de sucesso.
+
+Teste negativo: CEP vazio → deve bloquear (se validação implementada) ou enviar erro posterior.
+
+### 4.7 Formulário de Contato
+Ir para “Sobre” (`/about`).
+- Nome: `Visitante`
+- Email: `visitante@example.com`
+- Mensagem: `Quero saber como posso ajudar com doações.`
+Enviar.
+Esperado: toast de sucesso.
+
+### 4.8 Feedback
+Na mesma página “Sobre”:
+- Mensagem: `Site muito intuitivo, parabéns!`
+Enviar.
+Esperado: toast sucesso.
+
+### 4.9 Verificação Final
+Recarregar a página de lista de animais → `Thor` permanece.
+Realizar novo login com credenciais incorretas → bloqueado.
+Criar segundo animal para testar filtros (ex.: espécie `Gato`).
+Aplicar filtro “Cachorro” → apenas `Thor`.
+
+---
+## 5. Testes Via API (Opcional) – PowerShell
+
+Registrar adotante:
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:3001/auth/register -Method POST -Body (@{name='Carlos Pereira'; email='carlos.pereira@example.com'; password='Teste123!'; role='adotante'} | ConvertTo-Json) -ContentType 'application/json'
+```
+Login adotante:
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:3001/auth/login -Method POST -Body (@{email='carlos.pereira@example.com'; password='Teste123!'; role='adotante'} | ConvertTo-Json) -ContentType 'application/json'
+```
+Listar animais:
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:3001/animals -Method GET | ConvertTo-Json
 ```
-
-4. Criar um animal de teste (POST)
-   - Exemplo com `Invoke-RestMethod` (PowerShell):
+Criar animal (ONG):
 ```powershell
-$body = @{
-  name = 'Rex'
-  species = 'Cachorro'
-  age = '1 ano'
-  size = 'Médio'
-  temperament = 'Energético'
-  city = 'São Paulo, SP'
-  description = 'Filhote de golden retriever'
-  history = 'Resgatado de situação de rua'
-  status = 'Disponível'
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri http://127.0.0.1:3001/animals -Method POST -Body $body -ContentType 'application/json'
-```
-   - Verifique `GET /animals` novamente para confirmar inserção.
-
-5. Criar uma solicitação de adoção (POST /adoption)
-```powershell
-$adopt = @{
-  animal_id = 1
-  name = 'João da Silva'
-  email = 'joao@example.com'
-  address = 'Rua Teste, 123, São Paulo, SP'
-  message = 'Tenho experiência com animais e quero adotar.'
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri http://127.0.0.1:3001/adoption -Method POST -Body $adopt -ContentType 'application/json'
+Invoke-RestMethod -Uri http://127.0.0.1:3001/animals -Method POST -Body (@{name='Thor'; species='Cachorro'; age='2 anos'; size='Médio'; temperament='Brincalhão'; city='São Paulo, SP'; description='Alegre'; history='Resgatado'; status='Disponível'} | ConvertTo-Json) -ContentType 'application/json'
 ```
 
-6. Testar formulários de contato e feedback
-```powershell
-$contact = @{ name='Usuário Teste'; email='teste@example.com'; message='Pergunta sobre adoção' } | ConvertTo-Json
-Invoke-RestMethod -Uri http://127.0.0.1:3001/contact -Method POST -Body $contact -ContentType 'application/json'
+---
+## 6. Cenários de Erro (Validar Comportamento)
+- Login com email inexistente: deve retornar `Credenciais inválidas`.
+- Registro com email duplicado: deve retornar `E-mail já cadastrado`.
+- POST /animals faltando campos obrigatórios: retorna `Campos obrigatórios faltando`.
+- Adoção com `animal_id` inválido: deve retornar 404 (se rota implementar validação futura).
+- Servidor desligado: front mostra erro/toast de falha nas requisições.
 
-$feedback = @{ name='Usuário Teste'; email='teste@example.com'; message='Ótimo site!' } | ConvertTo-Json
-Invoke-RestMethod -Uri http://127.0.0.1:3001/feedback -Method POST -Body $feedback -ContentType 'application/json'
+---
+## 7. Checklist de Sucesso
+- [ ] Cadastro ONG funciona.
+- [ ] Login ONG bloqueia senha errada.
+- [ ] Cadastro animal atualiza lista imediatamente.
+- [ ] Cadastro adotante e login funcionam.
+- [ ] Lista de animais visível para adotante.
+- [ ] Solicitação de adoção gera página de sucesso.
+- [ ] Formulário de contato envia sem erro.
+- [ ] Feedback envia sem erro.
+- [ ] Filtros de espécie/porte/status atuam corretamente.
+- [ ] Login falha com credenciais inválidas.
+
+---
+## 8. Troubleshooting Rápido
+| Problema | Causa Provável | Ação |
+|----------|----------------|------|
+| Erro TypingOnly / AssertionError | Python 3.14 em uso | Recriar venv com Python 3.12 |
+| Porta 3001 não responde | Servidor não iniciou ou caiu | Reiniciar `python app.py` |
+| CORS bloqueado | Origem não listada | Conferir `CORS(...)` em `app.py` |
+| Animal não aparece após cadastro | Lista não foi atualizada | Verificar callback `onAnimalCreated` e rede |
+| Login aceita qualquer senha | Front não chama API | Confirmar import `authAPI` em `Login.tsx` |
+
+---
+## 9. Próximos Passos (Evolução)
+- Adicionar JWT e header Authorization.
+- Restringir POST /animals por role = ONG.
+- Paginação em /animals.
+- Upload real de imagens (S3/Cloudinary).
+- Validação de CEP via API externa.
+- Postman Collection + testes automatizados.
+
+---
+## 10. TL;DR (Executar Tudo Rápido)
+```powershell
+# Backend
+cd .\Back-end
+py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+
+# Front-end (nova janela)
+cd .\Front-end
+if (!(Test-Path .env.local)) { echo VITE_API_URL=http://localhost:3001 > .env.local }
+npm install
+npm run dev
 ```
 
-7. Verificar resultados no front-end
-   - Recarregue a página do front-end; a lista e detalhes devem refletir as inserções.
+Criar ONG + login + cadastrar animal + criar adotante + login adotante + ver animal.
 
 ---
-
-## 4) Endpoints principais (resumo)
-
-- `GET /health` — health check
-- `GET /animals` — lista animais
-- `GET /animals/<id>` — detalhes
-- `POST /animals` — criar animal
-- `POST /adoption` — criar solicitação de adoção
-- `POST /contact` — enviar contato
-- `POST /feedback` — enviar feedback
+## 11. Referências Técnicas Internas
+- Autenticação simples: `routes/auth_routes.py`
+- Modelo usuários: `database/models.py` (classe `User`)
+- Cliente API front: `src/services/api.ts`
+- Atualização lista de animais: callback `onAnimalCreated` em `RegisterAnimal.tsx` + função `refreshAnimals()` em `App.tsx`.
 
 ---
+Qualquer ajuste futuro: incremente versão (ex. 2.1.0) e registre mudanças neste arquivo.
 
-## 5) Observações sobre o ambiente que executamos aqui
 
-- Neste ambiente eu recriei o `venv` com Python 3.12 e instalei `SQLAlchemy 2.0.23` e demais dependências listadas em `requirements.txt`.
-- Iniciei o servidor e verifiquei que `GET /health` respondeu `{"message":"Server is running","status":"ok"}` e `GET /animals` retornou `{"data":[],...}` (sem registros iniciais).
+```powershell
 
----
-
-## 6) Troubleshooting rápido
-
-- Se `Invoke-RestMethod` retornar "Unable to connect", verifique se o servidor está ativo e se não há firewall bloqueando a porta `3001`.
-- Se houver erros relacionados a versões do Python/typing, recrie o `venv` usando Python 3.11/3.12 e reinstale dependências.
-
----
-
-## 7) Próximos passos (opcionais que posso executar para você)
-
-- Criar um conjunto de seeds (N animais) automaticamente.
-- Iniciar o front-end e testar end-to-end interações (eu executo ambos e mostro logs).
-- Gerar um `Postman` collection com todas as rotas para facilitar testes manuais.
-
----
-
-**Data de Atualização**: 24 de Novembro de 2025
-**Versão do Guia**: 1.1.0
-
-````
-
+# Backend

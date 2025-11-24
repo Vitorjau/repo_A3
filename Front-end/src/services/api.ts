@@ -211,10 +211,29 @@ export const healthAPI = {
   },
 };
 
+/**
+ * API de Autenticação
+ */
+export const authAPI = {
+  register: async (data: { name: string; email: string; password: string; role: 'ong' | 'adotante'; }) => {
+    return fetchAPI<any>('/auth/register', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  login: async (data: { email: string; password: string; role: 'ong' | 'adotante'; }) => {
+    return fetchAPI<any>('/auth/login', {
+      method: 'POST',
+      body: data,
+    });
+  },
+};
+
 export default {
   animalAPI,
   adoptionAPI,
   contactAPI,
   feedbackAPI,
   healthAPI,
+  authAPI,
 };

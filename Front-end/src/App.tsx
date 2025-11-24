@@ -84,6 +84,17 @@ export default function App() {
     navigateTo("home");
   };
 
+  const refreshAnimals = async () => {
+    try {
+      const response = await animalAPI.getAllAnimals();
+      if (response.success && response.data) {
+        setAnimals(response.data);
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar lista de animais", err);
+    }
+  };
+
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserType(null);
@@ -114,7 +125,7 @@ export default function App() {
           <Login onNavigate={navigateTo} onLogin={handleLogin} />
         )}
         {currentPage === "register-animal" && (
-          <RegisterAnimal onNavigate={navigateTo} isLoggedIn={isLoggedIn} userType={userType} />
+          <RegisterAnimal onNavigate={navigateTo} isLoggedIn={isLoggedIn} userType={userType} onAnimalCreated={refreshAnimals} />
         )}
         {currentPage === "how-to-help" && (
           <HowToHelp onNavigate={navigateTo} />

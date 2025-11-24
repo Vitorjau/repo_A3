@@ -20,9 +20,10 @@ interface RegisterAnimalProps {
   onNavigate: (page: Page) => void;
   isLoggedIn: boolean;
   userType: "adotante" | "ong" | null;
+  onAnimalCreated?: () => Promise<void> | void; // callback para atualizar lista de animais
 }
 
-export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAnimalProps) {
+export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreated }: RegisterAnimalProps) {
   const [formData, setFormData] = useState({
     name: "",
     species: "",
@@ -108,6 +109,10 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAni
 
       if (response.success) {
         toast.success("Animal cadastrado com sucesso!");
+        // Atualiza lista principal se callback fornecido
+        if (onAnimalCreated) {
+          await onAnimalCreated();
+        }
         onNavigate("animals");
       } else {
         toast.error(response.message || "Erro ao cadastrar animal");
