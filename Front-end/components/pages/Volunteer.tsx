@@ -35,12 +35,9 @@ export function Volunteer({ onNavigate }: VolunteerProps) {
 
         <Card className="p-8 bg-white/90 backdrop-blur-sm">
           <p className="text-gray-700 leading-relaxed mb-4">Cada gesto importa. Cada minuto doado muda uma vida. Venha fazer parte dessa rede de amor e cuidado. ❤️🐾</p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white" onClick={() => onNavigate('how-to-help')}>
-              Voltar
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => onNavigate('about')}>Quero me cadastrar</Button>
-          </div>
+          <Button className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white" onClick={() => onNavigate('how-to-help')}>
+            Voltar
+          </Button>
         </Card>
       </div>
     </div>

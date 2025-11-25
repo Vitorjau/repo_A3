@@ -7,77 +7,56 @@ Back-end: Flask, Flask-SQLAlchemy, endpoints REST para gerenciar animais, adoç�
 Objetivo: permitir ONGs e protetores cadastrarem animais, receber solicitações de adoção e permitir que adotantes entrem em contato.
 📁 Estrutura do Repositório
 🚀 Como rodar localmente
-1) Back-end (Flask)
-Requisitos: Python 3.10+ (ou compatível)
+# Como testar nosso projeto
 
-No terminal:
+Olá, professor — este é um guia curto e direto para executar e verificar o funcionamento do projeto (front-end + back-end).
 
-API rodando por padrão em: http://localhost:3001
-Health check: GET http://localhost:3001/health
-Se quiser outro host/porta, ajuste app.run(...) em app.py ou exporte/defina variáveis de ambiente conforme config.py.
+Objetivo: subir os dois servidores localmente, executar os principais fluxos e confirmar respostas esperadas.
 
-2) Front-end (React + Vite)
-Requisitos: Node.js (16+) e npm
+Pré-requisitos
+- Sistema: Windows (os comandos abaixo são para PowerShell). Git Bash/WSL também funcionam com pequenas adaptações.
+- Python 3.11/3.12 instalado (usamos `py -0p` para checar). Se usar Windows, marque "Add Python to PATH" na instalação.
+- Node.js + npm instalados.
 
-No terminal:
+## 1) Backend (Flask)
 
-Front-end disponível em: http://localhost:5173 (por padrão do Vite)
-A URL da API pode ser configurada em .env.local com:
-📡 Endpoints principais
-GET /animals — listar animais
+- Abra um PowerShell ou no terminal do VS Code e execute:
 
-GET /animals/:id — detalhes de um animal
+```powershell
+cd 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Back-end'
+Obs ' altere o caminho para o do seu computador '
+.\venv\Scripts\Activate.ps1
+python app.py
+```
 
-POST /animals — criar animal
+- Saída esperada no terminal do back-end: logs do Flask e uma linha de health, por exemplo:
 
-PUT /animals/:id — atualizar animal
+```
+ * Running on http://0.0.0.0:3001
+```
 
-DELETE /animals/:id — deletar animal
+## 2) Frontend (Vite + React)
 
-POST /adoption — criar solicitação de adoção
+- Em outro PowerShell:
 
-GET /adoption — listar solicitações
+```powershell
+Set-Location 'C:\Users\VitorJau\Desktop\repo\A3-quinta-projeto\Front-end'
+Obs ' altere o caminho para o do seu computador '
+npm install
+npm run dev
+```
 
-PUT /adoption/:id — atualizar status
+- Normalmente o front rodará em `http://localhost:5173`.
 
-POST /contact — enviar mensagem de contato
 
-POST /feedback — enviar feedback
+## 3) Roteiro resumido sugerido
+1. Registrar ONG -> criar animal (OK 201).
+2. Registrar adotante -> solicitar adoção (OK 201 e página de sucesso).
+3. Voltar como ONG -> aprovar adoção -> animal aparece como "Adotado".
+4. Testar exclusão de animal na página Gerenciar.
+5. Verificar paginação mudando `page`.
 
-GET /health — health-check
-
-(Consulte routes para mensagens/formatos exatos de request/response)
-
-🧪 Testes rápidos (manuais)
-Inicie backend e frontend.
-Acesse o site (http://localhost:5173).
-Vá até “Adote um Amigo” — a lista deve vir da API.
-Clique em “Cadastrar Animal” (como ONG) e envie o formulário — verifique se o animal aparece.
-Abra um animal e preencha o formulário de adoção — confira se a solicitação foi criada no back-end.
-Envie mensagem via página “Sobre” → formulário de contato e envie feedback.
-Também há arquivos de documentação no repositório:
-
-GUIA_TESTES_INTEGRACAO.md
-EXEMPLOS_REQUISICOES_API.md
-CHECKLIST_RAPIDO.md
-🛠️ Observações técnicas e pontos importantes
-O front usa um API client central em api.ts. Configure VITE_API_URL em .env.local.
-O projeto usa TypeScript — para evitar erros, execute npm install no Front-end antes de rodar.
-O backend cria o banco automaticamente (SQLite em instance/ por padrão).
-CORS já configurado no app.py para permitir acesso do Vite (localhost:5173).
-✅ O que foi implementado (resumido)
-API REST completa para animais, adoções, contatos e feedback.
-Front-end integrado: busca de animais, cadastro de animal, envio de adoção, formulários de contato/feedback.
-Client centralizado de API, toasts e loading states.
-Documentação e exemplos de requisição incluídos.
-📦 Dependências principais
-Back-end:
-
-Flask, Flask-CORS, Flask-SQLAlchemy, SQLAlchemy
-Front-end:
-
-React, Vite, TypeScript, Tailwind UI components (shadcn-style), Sonner (toasts), Lucide icons
-Veja requirements.txt e package.json para versões completas.
+Agradecemos por avaliar nosso trabalho!
 
 📝 Licença
 (MIT)

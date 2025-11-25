@@ -100,16 +100,19 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
         password: registerData.password,
         role: userType,
       });
-      if (response.success) {
+      if (response.success && response.data?.token) {
         toast.success("Cadastro realizado com sucesso!");
-        setAuthToken(response.data?.token || null);
+        setAuthToken(response.data.token);
         onLogin(userType);
       } else {
-        toast.error(response.message || "Erro ao cadastrar");
+        const errorMsg = response.message || "Erro ao cadastrar";
+        toast.error(errorMsg);
+        console.error("Erro no registro:", errorMsg);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao cadastrar";
       toast.error(msg);
+      console.error("Exceção no registro:", err);
     } finally {
       setLoadingRegister(false);
     }

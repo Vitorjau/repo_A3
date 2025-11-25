@@ -10,7 +10,7 @@ interface HomeProps {
 }
 
 export function Home({ animals, onNavigate }: HomeProps) {
-  const adoptedAnimals = animals.filter(a => a.status === "Adotado");
+  const adoptedAnimals = animals.filter(a => a.status === "Adotado").slice(0, 2);
 
   return (
     <div>
