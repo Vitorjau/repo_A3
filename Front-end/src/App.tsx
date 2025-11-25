@@ -5,19 +5,22 @@ import { AnimalDetails } from "../components/pages/AnimalDetails";
 import { Login } from "../components/pages/Login";
 import { RegisterAnimal } from "../components/pages/RegisterAnimal";
 import { HowToHelp } from "../components/pages/HowToHelp";
+import { Donate } from "../components/pages/Donate";
+import { Volunteer } from "../components/pages/Volunteer";
+import { Sponsor } from "../components/pages/Sponsor";
 import { About } from "../components/pages/About";
 import { AdoptionSuccess } from "../components/pages/AdoptionSuccess";
-import { ManageAnimals } from "../components/pages/ManageAnimals";
 import type { Page, Animal, Adoption } from "./types";
 import { MainHeader } from "../components/MainHeader";
-import { animalAPI, loadStoredToken } from "./services/api";
+import { animalAPI, loadStoredToken, authAPI } from "./services/api";
 import { toast } from "sonner";
 import "./App.css";
 
 // Tipos movidos para ./types para evitar dependência circular com ManageAnimals
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("home");
+  // Fluxo inicial: sempre iniciar em login/cadastro, e só ir para 'home' se já existir token válido
+  const [currentPage, setCurrentPage] = useState<Page>("login");
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState<"adotante" | "ong" | null>(null);
@@ -26,10 +29,33 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [perPage] = useState(6);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [initializing, setInitializing] = useState(true);
 
-  // Busca animais da API ao carregar o componente
+  // Carrega token armazenado e define página inicial adequada
   useEffect(() => {
-    loadStoredToken();
+    const stored = loadStoredToken();
+    if (!stored) {
+      setCurrentPage("login");
+      setInitializing(false);
+      return;
+    }
+    (async () => {
+      try {
+        const me = await authAPI.me();
+        if (me.success && me.data?.role) {
+          setIsLoggedIn(true);
+          setUserType(me.data.role as "ong" | "adotante");
+          setCurrentPage("home");
+          setInitializing(false);
+        } else {
+          setCurrentPage("login");
+          setInitializing(false);
+        }
+      } catch {
+        setCurrentPage("login");
+        setInitializing(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -51,6 +77,12 @@ export default function App() {
   }, [page, perPage]);
 
   const navigateTo = (page: Page, animal?: Animal) => {
+    // Guarda de rotas: somente página de login acessível sem autenticação
+    if (!isLoggedIn && page !== 'login') {
+      toast.error('Você precisa estar logado para acessar esta página.');
+      setCurrentPage('login');
+      return;
+    }
     setCurrentPage(page);
     if (animal) {
       setSelectedAnimal(animal);
@@ -59,9 +91,11 @@ export default function App() {
   };
 
   const handleLogin = (type: "adotante" | "ong") => {
+    // Define autenticação e força página inicial sem passar pelo guarda
     setIsLoggedIn(true);
     setUserType(type);
-    navigateTo("home");
+    setCurrentPage('home');
+    window.scrollTo(0, 0);
   };
 
   const refreshAnimals = async () => {
@@ -79,14 +113,18 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserType(null);
-    navigateTo("home");
+    navigateTo("login");
   };
 
   const handleAdoptionSuccess = (data: Adoption) => {
     setAdoptionData(data);
+    // Remover imediatamente o animal adotado da lista local para sumir da listagem
+    setAnimals(prev => prev.filter(a => a.id !== data.animal_id));
     if (data.animal) {
       setSelectedAnimal(data.animal as Animal);
     }
+    // Recarrega lista do backend para garantir consistência (status atualizado)
+    refreshAnimals();
     navigateTo("success");
   };
 
@@ -101,47 +139,59 @@ export default function App() {
       />
       
       <main>
-        {currentPage === "home" && (
-          <Home animals={animals} onNavigate={navigateTo} />
+        {initializing && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="size-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" aria-label="Carregando" />
+            <p className="text-sm text-muted-foreground">Validando sessão...</p>
+          </div>
         )}
-        {currentPage === "animals" && (
-          <AnimalList 
-            animals={animals} 
-            onNavigate={navigateTo} 
-            page={page} 
-            totalPages={totalPages} 
-            onPageChange={setPage}
-          />
-        )}
-        {currentPage === "animal-details" && selectedAnimal && (
-          <AnimalDetails animal={selectedAnimal} onNavigate={navigateTo} onAdoptionSuccess={handleAdoptionSuccess} />
-        )}
-        {currentPage === "login" && (
-          <Login onNavigate={navigateTo} onLogin={handleLogin} />
-        )}
-        {currentPage === "register-animal" && (
-          <RegisterAnimal onNavigate={navigateTo} isLoggedIn={isLoggedIn} userType={userType} onAnimalCreated={refreshAnimals} />
-        )}
-        {currentPage === "how-to-help" && (
-          <HowToHelp onNavigate={navigateTo} />
-        )}
-        {currentPage === "about" && (
-          <About onNavigate={navigateTo} />
-        )}
-        {currentPage === "success" && adoptionData && (
-          <AdoptionSuccess 
-            onNavigate={navigateTo} 
-            adoption={adoptionData}
-            isOng={userType === 'ong'}
-            onApproved={refreshAnimals}
-          />
-        )}
-        {currentPage === "manage" && isLoggedIn && userType === 'ong' && (
-          <ManageAnimals 
-            animals={animals}
-            onNavigate={navigateTo}
-            onDeleteSuccess={refreshAnimals}
-          />
+        {!initializing && (
+          <>
+            {currentPage === "home" && (
+              <Home animals={animals} onNavigate={navigateTo} />
+            )}
+            {currentPage === "animals" && (
+              <AnimalList 
+                animals={animals} 
+                onNavigate={navigateTo} 
+                page={page} 
+                totalPages={totalPages} 
+                onPageChange={setPage}
+              />
+            )}
+            {currentPage === "animal-details" && selectedAnimal && (
+              <AnimalDetails animal={selectedAnimal} onNavigate={navigateTo} onAdoptionSuccess={handleAdoptionSuccess} />
+            )}
+            {currentPage === "login" && (
+              <Login onNavigate={navigateTo} onLogin={handleLogin} />
+            )}
+            {currentPage === "register-animal" && (
+              <RegisterAnimal onNavigate={navigateTo} isLoggedIn={isLoggedIn} userType={userType} onAnimalCreated={refreshAnimals} />
+            )}
+            {currentPage === "how-to-help" && (
+              <HowToHelp onNavigate={navigateTo} />
+            )}
+            {currentPage === "donate" && (
+              <Donate onNavigate={navigateTo} />
+            )}
+            {currentPage === "volunteer" && (
+              <Volunteer onNavigate={navigateTo} />
+            )}
+            {currentPage === "sponsor" && (
+              <Sponsor onNavigate={navigateTo} />
+            )}
+            {currentPage === "about" && (
+              <About onNavigate={navigateTo} />
+            )}
+            {currentPage === "success" && adoptionData && (
+              <AdoptionSuccess 
+                onNavigate={navigateTo} 
+                adoption={adoptionData}
+                isOng={userType === 'ong'}
+                onApproved={refreshAnimals}
+              />
+            )}
+          </>
         )}
       </main>
 

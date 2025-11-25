@@ -63,6 +63,9 @@ def create_adoption():
             adoption_message=data.get("adoption_message")
         )
 
+        # Marca animal como adotado imediatamente conforme requisito
+        animal.status = "Adotado"
+
         db.session.add(adoption)
         db.session.commit()
 

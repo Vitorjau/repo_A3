@@ -32,6 +32,7 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
     message: ""
   });
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   const handleSearchCep = async () => {
     const cep = formData.cep.replace(/\D/g, "");
@@ -68,13 +69,26 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
-      toast.error("Por favor, preencha todos os campos obrigatórios");
-      return;
-    }
-
-    if (!formData.cep || !formData.address || !formData.number || !formData.city || !formData.state) {
-      toast.error("Por favor, preencha todos os campos de endereço");
+    const requiredSimple = [
+      { key: 'name', label: 'Nome completo' },
+      { key: 'email', label: 'E-mail' },
+      { key: 'message', label: 'Mensagem' },
+    ];
+    const requiredAddress = [
+      { key: 'cep', label: 'CEP' },
+      { key: 'address', label: 'Rua/Avenida' },
+      { key: 'number', label: 'Número' },
+      { key: 'city', label: 'Cidade' },
+      { key: 'state', label: 'Estado' },
+    ];
+    const missing: string[] = [];
+    const errs: Record<string, boolean> = {};
+    [...requiredSimple, ...requiredAddress].forEach(f => {
+      if (!formData[f.key as keyof typeof formData]) { missing.push(f.label); errs[f.key] = true; }
+    });
+    setFieldErrors(errs);
+    if (missing.length) {
+      toast.error(`Preencha: ${missing.join(', ')}`);
       return;
     }
 
@@ -217,6 +231,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                     onChange={handleChange}
                     placeholder="Seu nome"
                     required
+                    aria-invalid={fieldErrors.name || undefined}
+                    className={fieldErrors.name ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                   />
                 </div>
 
@@ -230,6 +246,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                     onChange={handleChange}
                     placeholder="seu@email.com"
                     required
+                    aria-invalid={fieldErrors.email || undefined}
+                    className={fieldErrors.email ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                   />
                 </div>
 
@@ -258,7 +276,9 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                         onChange={handleChange}
                         placeholder="00000-000"
                         maxLength={9}
-                        className="flex-1"
+                        aria-invalid={fieldErrors.cep || undefined}
+                        data-error={fieldErrors.cep || undefined}
+                        className={`flex-1 ${fieldErrors.cep ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : ''}`}
                       />
                       <Button
                         type="button"
@@ -280,6 +300,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                       onChange={handleChange}
                       placeholder="Digite seu endereço"
                       required
+                      aria-invalid={fieldErrors.address || undefined}
+                      className={fieldErrors.address ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                     />
                   </div>
 
@@ -293,6 +315,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                         onChange={handleChange}
                         placeholder="Ex: 123"
                         required
+                        aria-invalid={fieldErrors.number || undefined}
+                        className={fieldErrors.number ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                       />
                     </div>
 
@@ -318,6 +342,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                         onChange={handleChange}
                         placeholder="Digite sua cidade"
                         required
+                        aria-invalid={fieldErrors.city || undefined}
+                        className={fieldErrors.city ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                       />
                     </div>
 
@@ -330,8 +356,9 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                         onChange={handleChange}
                         placeholder="MG, SP, etc"
                         maxLength={2}
-                        className="uppercase"
                         required
+                        aria-invalid={fieldErrors.state || undefined}
+                        className={`uppercase ${fieldErrors.state ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : ''}`}
                       />
                     </div>
                   </div>
@@ -358,6 +385,8 @@ export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalD
                     placeholder="Conte um pouco sobre você e por que deseja adotar..."
                     rows={4}
                     required
+                    aria-invalid={fieldErrors.message || undefined}
+                    className={fieldErrors.message ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
                   />
                 </div>
 

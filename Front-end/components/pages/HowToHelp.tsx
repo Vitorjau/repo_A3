@@ -11,15 +11,15 @@ interface HowToHelpProps {
 
 export function HowToHelp({ onNavigate }: HowToHelpProps) {
   const handleDonate = () => {
-    toast.success("Redirecionando para a página de doação...");
+    onNavigate('donate');
   };
 
   const handleVolunteer = () => {
-    toast.success("Formulário de voluntariado em breve!");
+    onNavigate('volunteer');
   };
 
   const handleSponsor = () => {
-    toast.success("Abrindo opções de apadrinhamento...");
+    onNavigate('sponsor');
   };
 
   return (

@@ -38,6 +38,7 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   // Redirect if not ONG
   if (!isLoggedIn || userType !== "ong") {
@@ -82,12 +83,27 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name || !formData.species || !formData.age || !formData.size || !formData.description) {
-      toast.error("Por favor, preencha todos os campos obrigatórios");
+    const requiredFields: {key: keyof typeof formData; label: string}[] = [
+      { key: 'name', label: 'Nome' },
+      { key: 'species', label: 'Espécie' },
+      { key: 'age', label: 'Idade' },
+      { key: 'size', label: 'Porte' },
+      { key: 'temperament', label: 'Temperamento' },
+      { key: 'city', label: 'Cidade' },
+      { key: 'description', label: 'Descrição curta' },
+      { key: 'history', label: 'História completa' },
+    ];
+    const missing: string[] = [];
+    const errs: Record<string, boolean> = {};
+    requiredFields.forEach(f => {
+      if (!formData[f.key]) { missing.push(f.label); errs[f.key] = true; }
+    });
+    if (!uploadedImage) { missing.push('Foto do animal'); errs['image'] = true; }
+    setFieldErrors(errs);
+    if (missing.length) {
+      toast.error(`Preencha: ${missing.join(', ')}`);
       return;
     }
-
     submitForm();
   };
 
@@ -170,7 +186,7 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                   </Button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                <label className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${fieldErrors.image ? 'border-red-500 animate-pulse' : 'border-gray-300 hover:border-orange-500'}`}>
                   <Upload className="w-12 h-12 text-gray-400 mb-2" />
                   <p className="text-gray-600">Clique para fazer upload</p>
                   <p className="text-sm text-gray-400">PNG, JPG até 5MB</p>
@@ -195,6 +211,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 onChange={handleChange}
                 placeholder="Ex: Max"
                 required
+                aria-invalid={fieldErrors.name || undefined}
+                className={fieldErrors.name ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
               />
             </div>
 
@@ -204,7 +222,7 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 value={formData.species}
                 onValueChange={(value: string) => handleSelectChange("species", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.species ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined} aria-invalid={fieldErrors.species || undefined}>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,6 +241,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 onChange={handleChange}
                 placeholder="Ex: 2 anos"
                 required
+                aria-invalid={fieldErrors.age || undefined}
+                className={fieldErrors.age ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
               />
             </div>
 
@@ -232,7 +252,7 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 value={formData.size}
                 onValueChange={(value: string) => handleSelectChange("size", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.size ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined} aria-invalid={fieldErrors.size || undefined}>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,6 +272,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 onChange={handleChange}
                 placeholder="Ex: Dócil e brincalhão"
                 required
+                aria-invalid={fieldErrors.temperament || undefined}
+                className={fieldErrors.temperament ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
               />
             </div>
 
@@ -264,6 +286,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
                 onChange={handleChange}
                 placeholder="Ex: São Paulo, SP"
                 required
+                aria-invalid={fieldErrors.city || undefined}
+                className={fieldErrors.city ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
               />
             </div>
           </div>
@@ -277,6 +301,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
               onChange={handleChange}
               placeholder="Uma frase sobre o animal"
               required
+              aria-invalid={fieldErrors.description || undefined}
+              className={fieldErrors.description ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
             />
           </div>
 
@@ -290,6 +316,8 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreat
               placeholder="Conte a história do animal, como foi resgatado, características especiais..."
               rows={5}
               required
+              aria-invalid={fieldErrors.history || undefined}
+              className={fieldErrors.history ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30' : undefined}
             />
           </div>
 

@@ -136,18 +136,16 @@ def delete_animal(animal_id):
     try:
         animal = Animal.query.get(animal_id)
         if not animal:
-            return build_response(
-                success=False,
-                message="Animal não encontrado"
-            ), 404
+            # Resposta mínima conforme requisito
+            return {"error": "Animal não encontrado"}, 404
+        if animal.status == "Adotado":
+            # Impedir exclusão de animais já adotados
+            return {"error": "Não é permitido excluir animais adotados."}, 400
         
         db.session.delete(animal)
         db.session.commit()
-        
-        return build_response(
-            success=True,
-            message="Animal deletado com sucesso"
-        ), 200
+        # Resposta minimalista solicitada
+        return {"message": "Animal deletado com sucesso"}, 200
     except Exception as e:
         db.session.rollback()
         return handle_error(e, "Erro ao deletar animal")

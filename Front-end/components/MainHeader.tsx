@@ -2,6 +2,7 @@ import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import type { Page } from "../src/types";
+import { toast } from "sonner";
 
 interface MainHeaderProps {
   currentPage: Page;
@@ -27,11 +28,15 @@ export function MainHeader({
     { label: "Sobre", page: "about" },
   ];
 
-  if (isLoggedIn && userType === 'ong') {
-    navigationItems.push({ label: 'Gerenciar', page: 'manage' });
-  }
+  // Removido acesso à tela de gerenciamento; ONG mantém apenas registro de animal
 
   const handleNavClick = (page: Page) => {
+    if (!isLoggedIn && page !== 'login') {
+      toast.error('Faça login para acessar esta página');
+      onNavigate('login');
+      setIsMenuOpen(false);
+      return;
+    }
     onNavigate(page);
     setIsMenuOpen(false);
   };
@@ -43,7 +48,7 @@ export function MainHeader({
           {/* Logo */}
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => handleNavClick("home")}
+            onClick={() => handleNavClick(isLoggedIn ? "home" : "login")}
           >
             <div className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
               ProtegePet

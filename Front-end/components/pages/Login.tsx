@@ -20,6 +20,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
     password: ""
   });
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginFieldErrors, setLoginFieldErrors] = useState<{email?: boolean; password?: boolean}>({});
 
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -27,6 +28,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
     password: "",
     confirmPassword: ""
   });
+  const [registerFieldErrors, setRegisterFieldErrors] = useState<{name?: boolean; email?: boolean; password?: boolean; confirmPassword?: boolean}>({});
 
   const [userType, setUserType] = useState<"adotante" | "ong">("adotante");
 
@@ -35,8 +37,13 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginData.email || !loginData.password) {
-      toast.error("Preencha todos os campos");
+    const missing: string[] = [];
+    const fieldErr: typeof loginFieldErrors = {};
+    if (!loginData.email) { missing.push("E-mail"); fieldErr.email = true; }
+    if (!loginData.password) { missing.push("Senha"); fieldErr.password = true; }
+    setLoginFieldErrors(fieldErr);
+    if (missing.length) {
+      toast.error(`Preencha: ${missing.join(', ')}`);
       return;
     }
     try {
@@ -69,11 +76,19 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!registerData.name || !registerData.email || !registerData.password) {
-      toast.error("Preencha todos os campos obrigatórios");
+    const missing: string[] = [];
+    const fieldErr: typeof registerFieldErrors = {};
+    if (!registerData.name) { missing.push("Nome"); fieldErr.name = true; }
+    if (!registerData.email) { missing.push("E-mail"); fieldErr.email = true; }
+    if (!registerData.password) { missing.push("Senha"); fieldErr.password = true; }
+    if (!registerData.confirmPassword) { missing.push("Confirmar senha"); fieldErr.confirmPassword = true; }
+    setRegisterFieldErrors(fieldErr);
+    if (missing.length) {
+      toast.error(`Preencha: ${missing.join(', ')}`);
       return;
     }
     if (registerData.password !== registerData.confirmPassword) {
+      setRegisterFieldErrors(prev => ({ ...prev, password: true, confirmPassword: true }));
       toast.error("As senhas não coincidem");
       return;
     }
@@ -172,6 +187,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={loginData.email}
                   onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                   required
+                    aria-invalid={loginFieldErrors.email || undefined}
+                    className={loginFieldErrors.email ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 
@@ -184,6 +201,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={loginData.password}
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                   required
+                    aria-invalid={loginFieldErrors.password || undefined}
+                    className={loginFieldErrors.password ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 
@@ -223,6 +242,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={registerData.name}
                   onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                   required
+                    aria-invalid={registerFieldErrors.name || undefined}
+                    className={registerFieldErrors.name ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 
@@ -235,6 +256,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={registerData.email}
                   onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                   required
+                    aria-invalid={registerFieldErrors.email || undefined}
+                    className={registerFieldErrors.email ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 
@@ -247,6 +270,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={registerData.password}
                   onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                   required
+                    aria-invalid={registerFieldErrors.password || undefined}
+                    className={registerFieldErrors.password ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 
@@ -259,6 +284,8 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                   value={registerData.confirmPassword}
                   onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
                   required
+                    aria-invalid={registerFieldErrors.confirmPassword || undefined}
+                    className={registerFieldErrors.confirmPassword ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : undefined}
                 />
               </div>
 

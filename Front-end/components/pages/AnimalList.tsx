@@ -26,7 +26,8 @@ export function AnimalList({ animals, onNavigate, page, totalPages, onPageChange
   const [searchTerm, setSearchTerm] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState<string>("all");
   const [sizeFilter, setSizeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Filtra apenas animais disponíveis por padrão (adotados somem da lista principal)
+  const [statusFilter, setStatusFilter] = useState<string>("Disponível");
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredAnimals = animals.filter((animal) => {
@@ -111,8 +112,8 @@ export function AnimalList({ animals, onNavigate, page, totalPages, onPageChange
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Disponível">Disponível</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Adotado">Adotado</SelectItem>
                   </SelectContent>
                 </Select>

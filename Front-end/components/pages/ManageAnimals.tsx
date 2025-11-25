@@ -1,52 +1,61 @@
-import { useState } from "react";
-import type { Animal, Page } from "../../src/types";
-import { animalAPI } from "../../src/services/api";
+import { useEffect, useState } from "react";
+import type { Page, Animal } from "../../src/types";
 import { Button } from "../ui/button";
-import { toast } from "sonner";
+
 
 interface ManageAnimalsProps {
   animals: Animal[];
   onNavigate: (page: Page, animal?: Animal) => void;
-  onDeleteSuccess: () => void;
+  isOng: boolean;
 }
 
-export function ManageAnimals({ animals, onNavigate, onDeleteSuccess }: ManageAnimalsProps) {
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+export function ManageAnimals({ animals, onNavigate, isOng }: ManageAnimalsProps) {
+  // Só mostrar animais disponíveis
+  const [list, setList] = useState<Animal[]>(() => animals.filter(a => a.status === "Disponível"));
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const handleDelete = async (animal: Animal) => {
-    if (!confirm(`Remover animal "${animal.name}"? Esta ação é permanente.`)) return;
+  // Sincroniza quando props mudarem
+  useEffect(() => {
+    setList(animals.filter(a => a.status === "Disponível"));
+  }, [animals]);
+
+  // Função de exclusão conforme instruções
+  async function handleDelete(id: number) {
+    if (!isOng) return; // segurança extra
+    if (!confirm("Tem certeza que deseja excluir este animal?")) return;
     try {
-      setIsDeleting(animal.id);
-      const res = await animalAPI.deleteAnimal(animal.id);
-      if (res.success) {
-        toast.success("Animal removido");
-        onDeleteSuccess();
+      setDeletingId(id);
+      const response = await fetch(`http://localhost:5000/animals/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setList(prev => prev.filter(a => a.id !== id));
       } else {
-        toast.error(res.message || "Falha ao remover");
+        // Opcionalmente ler erro
+        console.error("Erro ao deletar animal", await response.text());
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro inesperado";
-      toast.error(msg);
+    } catch (err) {
+      console.error("Erro ao executar exclusão", err);
     } finally {
-      setIsDeleting(null);
+      setDeletingId(null);
     }
-  };
+  }
 
   return (
     <section className="max-w-6xl mx-auto px-4 py-10">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Gerenciar Animais</h1>
-        <Button onClick={() => onNavigate("register-animal")} className="bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600">
-          Registrar novo
-        </Button>
+        {isOng && (
+          <Button onClick={() => onNavigate("register-animal")} className="bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600">
+            Registrar novo
+          </Button>
+        )}
       </div>
 
-      {animals.length === 0 && (
-        <div className="p-6 border border-dashed rounded-md text-center text-gray-500">Nenhum animal cadastrado.</div>
+      {list.length === 0 && (
+        <div className="p-6 border border-dashed rounded-md text-center text-gray-500">Nenhum animal disponível para gerenciamento.</div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {animals.map(animal => (
+        {list.map(animal => (
           <div key={animal.id} className="bg-white border rounded-lg shadow-sm p-4 flex flex-col">
             <div className="flex-1">
               <h2 className="font-semibold text-lg text-gray-800 cursor-pointer" onClick={() => onNavigate("animal-details", animal)}>
@@ -58,14 +67,16 @@ export function ManageAnimals({ animals, onNavigate, onDeleteSuccess }: ManageAn
             </div>
             <div className="mt-4 flex gap-2">
               <Button variant="outline" size="sm" onClick={() => onNavigate("animal-details", animal)}>Ver</Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={isDeleting === animal.id}
-                onClick={() => handleDelete(animal)}
-              >
-                {isDeleting === animal.id ? 'Removendo...' : 'Excluir'}
-              </Button>
+              {isOng && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deletingId === animal.id}
+                  onClick={() => handleDelete(animal.id)}
+                >
+                  {deletingId === animal.id ? 'Removendo...' : 'Excluir'}
+                </Button>
+              )}
             </div>
           </div>
         ))}

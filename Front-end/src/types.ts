@@ -8,7 +8,9 @@ export type Page =
   | "how-to-help"
   | "about"
   | "success"
-  | "manage";
+  | "donate"
+  | "volunteer"
+  | "sponsor";
 
 export interface Animal {
   id: number;
