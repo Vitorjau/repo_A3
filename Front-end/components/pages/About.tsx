@@ -1,12 +1,13 @@
-import { Mail, MapPin, Phone, Heart } from "lucide-react";
+import { Mail, MapPin, Phone, Heart, Loader } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { useState } from "react";
 import { toast } from "sonner";
+import { contactAPI, feedbackAPI } from "../../src/services/api";
 
 interface AboutProps {
   onNavigate: (page: Page) => void;
@@ -19,15 +20,64 @@ export function About({ onNavigate }: AboutProps) {
     subject: "",
     message: ""
   });
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [loadingContact, setLoadingContact] = useState(false);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    toast.success("Mensagem enviada com sucesso! Em breve entraremos em contato.");
-    setContactForm({ name: "", email: "", subject: "", message: "" });
+
+    try {
+      setLoadingContact(true);
+      const response = await contactAPI.sendContact({
+        name: contactForm.name,
+        email: contactForm.email,
+        subject: contactForm.subject || undefined,
+        message: contactForm.message
+      });
+
+      if (response.success) {
+        toast.success("Mensagem enviada com sucesso! Em breve entraremos em contato.");
+        setContactForm({ name: "", email: "", subject: "", message: "" });
+      } else {
+        toast.error(response.message || "Erro ao enviar mensagem");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao enviar mensagem";
+      toast.error(message);
+      console.error("Erro ao enviar contato:", err);
+    } finally {
+      setLoadingContact(false);
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMessage.trim()) {
+      toast.error("Escreva uma mensagem de feedback");
+      return;
+    }
+
+    try {
+      setLoadingFeedback(true);
+      const response = await feedbackAPI.sendFeedback(feedbackMessage);
+
+      if (response.success) {
+        toast.success("Feedback enviado com sucesso! Obrigado pela sua contribuição.");
+        setFeedbackMessage("");
+      } else {
+        toast.error(response.message || "Erro ao enviar feedback");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao enviar feedback";
+      toast.error(message);
+      console.error("Erro ao enviar feedback:", err);
+    } finally {
+      setLoadingFeedback(false);
+    }
   };
 
   const handleChange = (
@@ -161,9 +211,17 @@ export function About({ onNavigate }: AboutProps) {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loadingContact}
                 >
-                  Enviar mensagem
+                  {loadingContact ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar mensagem"
+                  )}
                 </Button>
               </form>
             </Card>
@@ -224,12 +282,29 @@ export function About({ onNavigate }: AboutProps) {
             <p className="text-gray-600 mb-6">
               Sua opinião é importante para melhorar o ProtegePet. Compartilhe suas sugestões e feedback
             </p>
-            <button
-              onClick={() => window.location.href = "/feedback.html"}
-              className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md hover:shadow-lg"
-            >
-              Enviar Feedback
-            </button>
+            <div className="max-w-2xl mx-auto">
+              <Textarea
+                placeholder="Sua mensagem de feedback..."
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                rows={4}
+                className="mb-4"
+              />
+              <Button
+                onClick={handleFeedbackSubmit}
+                disabled={loadingFeedback}
+                className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingFeedback ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Enviar Feedback"
+                )}
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

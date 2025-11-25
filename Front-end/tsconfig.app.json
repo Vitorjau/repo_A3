@@ -5,7 +5,6 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -22,7 +21,23 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    
+    /* Type checking */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "components/pages",
+    "components/MainHeader.tsx",
+    "components/ui/button.tsx",
+    "components/ui/utils.ts",
+    "vite-env.d.ts"
+  ],
+  "exclude": [
+    "components/ui/*",
+    "components/ui/**/*",
+    "!components/ui/button.tsx",
+    "!components/ui/utils.ts"
+  ]
 }

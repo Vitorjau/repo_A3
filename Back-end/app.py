@@ -14,6 +14,7 @@ from routes.animals_routes import animals_bp
 from routes.adoption_routes import adoption_bp
 from routes.address_routes import address_bp
 from routes.contact_routes import contact_bp, feedback_bp
+from routes.auth_routes import auth_bp
 
 def create_app(config_name: str = None) -> Flask:
     """
@@ -50,6 +51,7 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(address_bp)
     app.register_blueprint(contact_bp)
     app.register_blueprint(feedback_bp)
+    app.register_blueprint(auth_bp)
     
     # Contexto de aplicação para operações de banco de dados
     with app.app_context():

@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from database.models import db, Adoption, Animal
 from utils.response_builder import build_response
 from utils.error_handlers import handle_error
+from utils.jwt_utils import token_required
 
 adoption_bp = Blueprint("adoptions", __name__, url_prefix="/adoptions")
 
@@ -22,8 +23,11 @@ def get_all_adoptions():
 def create_adoption():
     """POST /adoptions - Registra uma nova adoção"""
     try:
-        data = request.get_json()
-        
+        data = request.get_json() or {}
+
+        # Log simples para depuração de erro 500
+        print("[DEBUG] create_adoption payload:", data)
+
         # Validação básica
         required_fields = [
             "animal_id", "adopter_name", "adopter_email",
@@ -35,7 +39,7 @@ def create_adoption():
                 success=False,
                 message="Campos obrigatórios faltando"
             ), 400
-        
+
         # Verifica se o animal existe
         animal = Animal.query.get(data.get("animal_id"))
         if not animal:
@@ -43,8 +47,7 @@ def create_adoption():
                 success=False,
                 message="Animal não encontrado"
             ), 404
-        
-        # Cria o registro de adoção
+
         adoption = Adoption(
             animal_id=data.get("animal_id"),
             adopter_name=data.get("adopter_name"),
@@ -59,10 +62,10 @@ def create_adoption():
             address_state=data.get("address_state"),
             adoption_message=data.get("adoption_message")
         )
-        
+
         db.session.add(adoption)
         db.session.commit()
-        
+
         return build_response(
             success=True,
             message="Adoção registrada com sucesso",
@@ -71,6 +74,28 @@ def create_adoption():
     except Exception as e:
         db.session.rollback()
         return handle_error(e, "Erro ao registrar adoção")
+
+@adoption_bp.route("/<int:adoption_id>/status", methods=["PUT"])
+@token_required(role="ong")
+def update_adoption_status(adoption_id: int):
+    """PUT /adoptions/<id>/status - Atualiza status da adoção e marca animal como Adotado se Approved."""
+    try:
+        data = request.get_json() or {}
+        print(f"[DEBUG] update_adoption_status {adoption_id} payload:", data)
+        adoption = Adoption.query.get(adoption_id)
+        if not adoption:
+            return build_response(False, "Adoção não encontrada"), 404
+        new_status = data.get("status")
+        if new_status not in ("Pending", "Approved", "Rejected"):
+            return build_response(False, "Status inválido"), 400
+        adoption.status = new_status
+        if new_status == "Approved" and adoption.animal:
+            adoption.animal.status = "Adotado"
+        db.session.commit()
+        return build_response(True, "Status atualizado", adoption.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return handle_error(e, "Erro ao atualizar status de adoção")
 
 @adoption_bp.route("/<int:adoption_id>", methods=["DELETE"])
 def delete_adoption(adoption_id):
@@ -82,10 +107,10 @@ def delete_adoption(adoption_id):
                 success=False,
                 message="Adoção não encontrada"
             ), 404
-        
+
         db.session.delete(adoption)
         db.session.commit()
-        
+
         return build_response(
             success=True,
             message="Adoção deletada com sucesso"

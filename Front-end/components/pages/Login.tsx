@@ -5,8 +5,9 @@ import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { toast } from "sonner";
+import { authAPI, setAuthToken } from "../../src/services/api";
 
 interface LoginProps {
   onNavigate: (page: Page) => void;
@@ -18,6 +19,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
     email: "",
     password: ""
   });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -28,17 +30,44 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
   const [userType, setUserType] = useState<"adotante" | "ong">("adotante");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loadingLogin, setLoadingLogin] = useState(false);
+  const [loadingRegister, setLoadingRegister] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginData.email || !loginData.password) {
       toast.error("Preencha todos os campos");
       return;
     }
-    toast.success("Login realizado com sucesso!");
-    onLogin(userType);
+    try {
+      setLoadingLogin(true);
+      setLoginError(null);
+      const response = await authAPI.login({
+        email: loginData.email,
+        password: loginData.password,
+        role: userType,
+      });
+      if (response.success) {
+        toast.success("Login realizado com sucesso!");
+        // token já salvo pelo api.ts, mas garantimos consistência
+        setAuthToken(response.data?.token || null);
+        onLogin(userType);
+      } else {
+        const msg = response.message || "E-mail ou senha incorretos";
+        setLoginError(msg);
+        toast.error(msg);
+      }
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Erro de login";
+      const friendly = /Credenciais|401/.test(raw) ? "E-mail ou senha incorretos" : raw;
+      setLoginError(friendly);
+      toast.error(friendly);
+    } finally {
+      setLoadingLogin(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!registerData.name || !registerData.email || !registerData.password) {
       toast.error("Preencha todos os campos obrigatórios");
@@ -48,8 +77,27 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
       toast.error("As senhas não coincidem");
       return;
     }
-    toast.success("Cadastro realizado com sucesso!");
-    onLogin(userType);
+    try {
+      setLoadingRegister(true);
+      const response = await authAPI.register({
+        name: registerData.name,
+        email: registerData.email,
+        password: registerData.password,
+        role: userType,
+      });
+      if (response.success) {
+        toast.success("Cadastro realizado com sucesso!");
+        setAuthToken(response.data?.token || null);
+        onLogin(userType);
+      } else {
+        toast.error(response.message || "Erro ao cadastrar");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao cadastrar";
+      toast.error(msg);
+    } finally {
+      setLoadingRegister(false);
+    }
   };
 
   return (
@@ -139,6 +187,12 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
                 />
               </div>
 
+              {loginError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+                  {loginError}
+                </div>
+              )}
+
               <button
                 type="button"
                 className="text-sm text-orange-500 hover:text-orange-600"
@@ -149,9 +203,10 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+                disabled={loadingLogin}
+                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50"
               >
-                Entrar
+                {loadingLogin ? "Entrando..." : "Entrar"}
               </Button>
             </form>
           </TabsContent>
@@ -209,9 +264,10 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+                disabled={loadingRegister}
+                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50"
               >
-                Criar conta
+                {loadingRegister ? "Criando..." : "Criar conta"}
               </Button>
             </form>
           </TabsContent>

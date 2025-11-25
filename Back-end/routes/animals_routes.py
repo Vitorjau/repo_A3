@@ -1,20 +1,26 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 from database.models import db, Animal
 from utils.response_builder import build_response
 from utils.error_handlers import handle_error
+from utils.jwt_utils import token_required
 
 animals_bp = Blueprint("animals", __name__, url_prefix="/animals")
 
 @animals_bp.route("", methods=["GET"])
 def get_all_animals():
-    """GET /animals - Lista todos os animais"""
+    """GET /animals - Lista paginada de animais (page, per_page)"""
     try:
-        animals = Animal.query.all()
-        return build_response(
-            success=True,
-            message="Animais recuperados com sucesso",
-            data=[animal.to_dict() for animal in animals]
-        ), 200
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 10))
+        pagination = Animal.query.order_by(Animal.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        items = [animal.to_dict() for animal in pagination.items]
+        meta = {
+            "page": page,
+            "per_page": per_page,
+            "total": pagination.total,
+            "pages": pagination.pages
+        }
+        return build_response(True, "Animais recuperados com sucesso", {"items": items, "meta": meta}), 200
     except Exception as e:
         return handle_error(e, "Erro ao recuperar animais")
 
@@ -37,6 +43,7 @@ def get_animal(animal_id):
         return handle_error(e, "Erro ao recuperar animal")
 
 @animals_bp.route("", methods=["POST"])
+@token_required(role="ong")
 def create_animal():
     """POST /animals - Cria um novo animal"""
     try:
@@ -76,6 +83,7 @@ def create_animal():
         return handle_error(e, "Erro ao criar animal")
 
 @animals_bp.route("/<int:animal_id>", methods=["PUT"])
+@token_required(role="ong")
 def update_animal(animal_id):
     """PUT /animals/<id> - Atualiza um animal"""
     try:
@@ -122,6 +130,7 @@ def update_animal(animal_id):
         return handle_error(e, "Erro ao atualizar animal")
 
 @animals_bp.route("/<int:animal_id>", methods=["DELETE"])
+@token_required(role="ong")
 def delete_animal(animal_id):
     """DELETE /animals/<id> - Deleta um animal"""
     try:

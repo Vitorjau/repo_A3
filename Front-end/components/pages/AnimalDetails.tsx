@@ -1,21 +1,23 @@
-import { ArrowLeft, Share2, MapPin, Calendar, Heart } from "lucide-react";
+import { ArrowLeft, Share2, MapPin, Calendar, Heart, Loader } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
-import type { Page, Animal } from "../../src/App";
+import type { Page, Animal, Adoption } from "../../src/types";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useState } from "react";
 import { toast } from "sonner";
+import { adoptionAPI } from "../../src/services/api";
 
 interface AnimalDetailsProps {
   animal: Animal;
   onNavigate: (page: Page) => void;
+  onAdoptionSuccess: (data: Adoption) => void;
 }
 
-export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
+export function AnimalDetails({ animal, onNavigate, onAdoptionSuccess }: AnimalDetailsProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,10 +26,12 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     address: "",
     number: "",
     complement: "",
+    neighborhood: "",
     city: "",
     state: "",
     message: ""
   });
+  const [loading, setLoading] = useState(false);
 
   const handleSearchCep = async () => {
     const cep = formData.cep.replace(/\D/g, "");
@@ -38,9 +42,21 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     }
 
     try {
-      // API de CEP será implementada no back-end
-      // Por enquanto, apenas mostramos uma mensagem
-      toast.info("Função de busca de CEP será integrada em breve");
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      setFormData(prev => ({
+        ...prev,
+        address: data.logradouro || prev.address,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: (data.uf || prev.state).toUpperCase(),
+        complement: prev.complement || data.complemento || ""
+      }));
+      toast.success("Endereço preenchido automaticamente");
     } catch (error) {
       toast.error("Erro ao buscar CEP. Tente novamente.");
     }
@@ -50,13 +66,48 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
     toast.success("Link copiado para a área de transferência!");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
-    onNavigate("success");
+
+    if (!formData.cep || !formData.address || !formData.number || !formData.city || !formData.state) {
+      toast.error("Por favor, preencha todos os campos de endereço");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await adoptionAPI.createAdoption({
+        animal_id: animal.id,
+        adopter_name: formData.name,
+        adopter_email: formData.email,
+        adopter_phone: formData.phone || undefined,
+        address_cep: formData.cep,
+        address_street: formData.address,
+        address_number: formData.number,
+        address_complement: formData.complement || undefined,
+        address_neighborhood: formData.neighborhood || undefined,
+        address_city: formData.city,
+        address_state: formData.state.toUpperCase(),
+        adoption_message: formData.message
+      });
+
+      if (response.success && response.data) {
+        toast.success("Solicitação de adoção enviada com sucesso!");
+        onAdoptionSuccess(response.data as Adoption);
+      } else {
+        toast.error(response.message || "Erro ao enviar solicitação de adoção");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao enviar solicitação de adoção";
+      toast.error(message);
+      console.error("Erro ao criar adoção:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -284,6 +335,17 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Input
+                      id="neighborhood"
+                      name="neighborhood"
+                      value={formData.neighborhood}
+                      onChange={handleChange}
+                      placeholder="Preenchido pelo CEP"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -301,9 +363,17 @@ export function AnimalDetails({ animal, onNavigate }: AnimalDetailsProps) {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  Quero adotar
+                  {loading ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Quero adotar"
+                  )}
                 </Button>
               </form>
             </Card>

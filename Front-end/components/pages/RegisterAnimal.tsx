@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
@@ -12,16 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import type { Page } from "../../src/App";
+import type { Page } from "../../src/types";
 import { toast } from "sonner";
+import { animalAPI } from "../../src/services/api";
 
 interface RegisterAnimalProps {
   onNavigate: (page: Page) => void;
   isLoggedIn: boolean;
   userType: "adotante" | "ong" | null;
+  onAnimalCreated?: () => Promise<void> | void; // callback para atualizar lista de animais
 }
 
-export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAnimalProps) {
+export function RegisterAnimal({ onNavigate, isLoggedIn, userType, onAnimalCreated }: RegisterAnimalProps) {
   const [formData, setFormData] = useState({
     name: "",
     species: "",
@@ -35,6 +37,7 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAni
   });
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Redirect if not ONG
   if (!isLoggedIn || userType !== "ong") {
@@ -80,13 +83,47 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAni
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.species || !formData.age || !formData.description) {
+    if (!formData.name || !formData.species || !formData.age || !formData.size || !formData.description) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
 
-    toast.success("Animal cadastrado com sucesso!");
-    onNavigate("animals");
+    submitForm();
+  };
+
+  const submitForm = async () => {
+    try {
+      setLoading(true);
+      const response = await animalAPI.createAnimal({
+        name: formData.name,
+        species: formData.species as "Cachorro" | "Gato",
+        age: formData.age,
+        size: formData.size as "Pequeno" | "Médio" | "Grande",
+        temperament: formData.temperament,
+        city: formData.city,
+        description: formData.description,
+        history: formData.history,
+        image: uploadedImage || undefined,
+        status: formData.status as "Disponível" | "Adotado",
+      });
+
+      if (response.success) {
+        toast.success("Animal cadastrado com sucesso!");
+        // Atualiza lista principal se callback fornecido
+        if (onAnimalCreated) {
+          await onAnimalCreated();
+        }
+        onNavigate("animals");
+      } else {
+        toast.error(response.message || "Erro ao cadastrar animal");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao cadastrar animal";
+      toast.error(message);
+      console.error("Erro ao cadastrar animal:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -283,9 +320,17 @@ export function RegisterAnimal({ onNavigate, isLoggedIn, userType }: RegisterAni
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
+              className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
             >
-              Salvar animal
+              {loading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar animal"
+              )}
             </Button>
           </div>
         </form>
